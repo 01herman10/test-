@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body style="margin:0">
+<title>Calculateur Douane Véhicule</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout : bulletin de liquidation douanière — formulaire à gauche, ticket de calcul à droite, une seule colonne sur téléphone */
+:root{
+  --bg:#EDF1F0; --surface:#FFFFFF; --ink:#15232A; --muted:#566870; --line:#D2DBDA;
+  --accent:#0D5A66; --accent-ink:#FFFFFF; --mark:#F2C230; --mark-ink:#15232A;
+  --danger:#B3261E; --danger-bg:#FBE8E6; --ok:#1E7448; --ok-bg:#E5F3EB;
+  --warn:#7A4B00; --warn-bg:#FCEFD2;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1618; --surface:#162226; --ink:#E5ECEB; --muted:#93A5A9; --line:#2A3B40;
+  --accent:#62B6C3; --accent-ink:#0E1618; --mark:#E8B829; --mark-ink:#15232A;
+  --danger:#F28A80; --danger-bg:#3A1D1B; --ok:#62C792; --ok-bg:#16301F;
+  --warn:#F0C46A; --warn-bg:#352A12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1618; --surface:#162226; --ink:#E5ECEB; --muted:#93A5A9; --line:#2A3B40;
+  --accent:#62B6C3; --accent-ink:#0E1618; --mark:#E8B829; --mark-ink:#15232A;
+  --danger:#F28A80; --danger-bg:#3A1D1B; --ok:#62C792; --ok-bg:#16301F;
+  --warn:#F0C46A; --warn-bg:#352A12; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1060px;margin:0 auto;padding-block:28px 56px;
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:22px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,6vw,42px);line-height:1.05;margin:6px 0 8px;text-wrap:balance;letter-spacing:-.01em}
+.lead{margin:0;color:var(--muted);max-width:62ch}
+.grid{display:grid;grid-template-columns:1fr;gap:20px}
+@media (min-width:880px){.grid{grid-template-columns:1fr 1.1fr;align-items:start}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;min-width:0}
+.h{font-family:var(--f-display);font-weight:600;font-size:17px;margin:0;letter-spacing:.01em}
+form{display:flex;flex-direction:column;gap:16px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.row2{grid-template-columns:1fr}}
+label,.lbl{font-weight:500;font-size:14px}
+select,input[type=number],input[type=text]{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+input.money{font-variant-numeric:tabular-nums}
+input[aria-invalid="true"]{border-color:var(--danger);background:var(--danger-bg)}
+.err{margin:0;font-size:13px;color:var(--danger)}
+select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.seg{position:relative;display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label{flex:1;text-align:center;padding:10px 8px;cursor:pointer;font-size:15px}
+.seg input:checked+label{background:var(--accent);color:var(--accent-ink)}
+.seg input:focus-visible+label{outline:2px solid var(--accent);outline-offset:-3px}
+.hint{margin:0;font-size:13px;color:var(--muted);border-top:1px dashed var(--line);padding-top:12px}
+.conv{margin:0;font-size:13px;color:var(--accent)}
+hr.sep{border:0;border-top:1px solid var(--line);margin:0}
+
+.ticket{display:flex;flex-direction:column;gap:14px}
+.ticket-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.ticket-head strong{font-family:var(--f-display);font-size:17px}
+.alert{border-radius:8px;padding:12px 14px;font-size:14px}
+.alert.ok{background:var(--ok-bg);color:var(--ok)}
+.alert.bad{background:var(--danger-bg);color:var(--danger);font-weight:500}
+.alert.warn{background:var(--warn-bg);color:var(--warn)}
+.alert.info{background:var(--bg);color:var(--muted)}
+ol.lines{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+ol.lines li{display:grid;grid-template-columns:52px 1fr auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--line);align-items:start}
+.code{font-family:var(--f-mono);font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:2px 0;text-align:center}
+.lab{font-weight:600;min-width:0}
+.lab small{display:block;font-weight:400;color:var(--muted);font-size:13px;line-height:1.4;margin-top:2px}
+.amt{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+li.cif .amt{color:var(--muted)}
+.total{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--mark);color:var(--mark-ink);border-radius:10px;padding:14px 16px}
+.total span:first-child{font-weight:600}
+.total .big{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,5vw,30px);font-variant-numeric:tabular-nums}
+.sub{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.sub b{color:var(--ink);font-family:var(--f-mono);font-weight:500}
+.dim{opacity:.45}
+
+.docs ul{margin:12px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:1fr;gap:10px}
+@media (min-width:700px){.docs ul{grid-template-columns:1fr 1fr}}
+.docs li{border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0}
+.docs li b{display:block;font-weight:600}
+.docs li span{font-size:13px;color:var(--muted)}
+.fine{font-size:13px;color:var(--muted);margin:0;max-width:75ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Zone UEMOA · Côte d'Ivoire · Sénégal · Bénin · Togo</div>
+    <h1>Combien vais-je payer à la douane&nbsp;?</h1>
+    <p class="lead">Entrez votre véhicule, sa valeur et le pays d'arrivée. Le calcul détaille chaque taxe et explique pourquoi vous la payez.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card" aria-label="Informations du véhicule">
+      <form id="f" novalidate>
+        <h2 class="h">Votre véhicule</h2>
+        <div class="field">
+          <label for="pays">Pays d'arrivée</label>
+          <select id="pays"></select>
+        </div>
+        <div class="field">
+          <label for="type">Type de véhicule</label>
+          <select id="type"></select>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <span class="lbl" id="etat-l">État</span>
+            <div class="seg" role="radiogroup" aria-labelledby="etat-l">
+              <input type="radio" name="etat" id="etat-occ" value="occasion" checked><label for="etat-occ">Occasion</label>
+              <input type="radio" name="etat" id="etat-neuf" value="neuf"><label for="etat-neuf">Neuf</label>
+            </div>
+          </div>
+          <div class="field">
+            <label for="annee">Année de fabrication</label>
+            <input id="annee" type="number" inputmode="numeric" min="1980" step="1" value="2022">
+          </div>
+        </div>
+
+        <hr class="sep">
+        <h2 class="h">Prix et transport</h2>
+        <div class="field">
+          <span class="lbl" id="dev-l">Devise</span>
+          <div class="seg" role="radiogroup" aria-labelledby="dev-l">
+            <input type="radio" name="devise" id="dev-eur" value="EUR" checked><label for="dev-eur">Euro (€)</label>
+            <input type="radio" name="devise" id="dev-xof" value="XOF"><label for="dev-xof">FCFA</label>
+          </div>
+          <p class="conv" id="conv" aria-live="polite" hidden></p>
+        </div>
+        <div class="field">
+          <label for="prix">Prix d'achat du véhicule <span class="cur">(€)</span></label>
+          <input id="prix" class="money" type="text" inputmode="decimal" autocomplete="off" value="5000" aria-describedby="prix-err">
+          <p class="err" id="prix-err" hidden></p>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="fret">Fret maritime <span class="cur">(€)</span></label>
+            <input id="fret" class="money" type="text" inputmode="decimal" autocomplete="off" value="400" aria-describedby="fret-err">
+            <p class="err" id="fret-err" hidden></p>
+          </div>
+          <div class="field">
+            <label for="assur">Assurance transport <span class="cur">(€)</span></label>
+            <input id="assur" class="money" type="text" inputmode="decimal" autocomplete="off" value="100" aria-describedby="assur-err">
+            <p class="err" id="assur-err" hidden></p>
+          </div>
+        </div>
+        <p class="hint">Exemple prérempli : une voiture d'occasion de 2022 à 5&nbsp;000&nbsp;€. Remplacez par vos chiffres (virgule ou point acceptés), le calcul se met à jour tout seul.</p>
+      </form>
+    </section>
+
+    <section class="card ticket" aria-label="Résultat du calcul">
+      <div class="ticket-head">
+        <span class="eyebrow">Bulletin d'estimation</span>
+        <strong id="t-port"></strong>
+      </div>
+      <div id="alerte" class="alert" role="status" aria-live="polite"></div>
+      <div id="calc" class="ticket" style="gap:14px">
+        <ol class="lines" id="lignes"></ol>
+        <div class="total" aria-live="polite" aria-atomic="true"><span>Total droits et taxes</span><span class="big" id="total"></span></div>
+        <div class="sub"><span>Soit <b id="pct"></b> de la valeur CIF</span><span>Coût total au port : <b id="grand"></b></span></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="card docs" aria-label="Documents à préparer">
+    <h2 class="h">Papiers à préparer à l'arrivée</h2>
+    <ul id="docs"></ul>
+  </section>
+
+  <p class="fine">Estimation indicative, basée sur le tarif commun UEMOA. Chaque ligne est arrondie au franc, comme sur un bulletin de liquidation. Le montant réel peut varier selon la cylindrée, l'âge, les taxes nationales et la valeur retenue par la douane. Non inclus : honoraires du transitaire, frais de port et de parking, immatriculation, assurance locale. Vérifiez toujours auprès des douanes ou d'un transitaire agréé.</p>
+</div>
+
+<script>
+(function(){
+  var EUR = 655.957;
+  var PAYS = {
+    CI:{nom:"Côte d'Ivoire", port:"Port d'Abidjan", vp:5, lourd:null, note:""},
+    SN:{nom:"Sénégal", port:"Port de Dakar", vp:10, lourd:15, note:""},
+    BJ:{nom:"Bénin", port:"Port de Cotonou", vp:10, lourd:null, note:" (limite à confirmer auprès des douanes béninoises)"},
+    TG:{nom:"Togo", port:"Port de Lomé", vp:8, lourd:null, note:""}
+  };
+  var TYPES = [
+    {id:"voiture", nom:"Voiture particulière", dd:20, cat:"vp"},
+    {id:"suv", nom:"SUV / 4x4", dd:20, cat:"vp"},
+    {id:"taxi", nom:"Taxi", dd:20, cat:"vp"},
+    {id:"moto", nom:"Moto", dd:20, cat:"deux"},
+    {id:"tricycle", nom:"Tricycle", dd:20, cat:"deux"},
+    {id:"pickup", nom:"Pick-up", dd:10, cat:"util"},
+    {id:"bus", nom:"Bus / minibus", dd:10, cat:"lourd"},
+    {id:"camion", nom:"Camion", dd:10, cat:"lourd"},
+    {id:"tracteur", nom:"Tracteur agricole", dd:5, cat:"agri"}
+  ];
+  var MONTANTS = ["prix","fret","assur"];
+  var $ = function(id){ return document.getElementById(id); };
+
+  var selP = $("pays");
+  Object.keys(PAYS).forEach(function(k){ var o=document.createElement("option"); o.value=k; o.textContent=PAYS[k].nom; selP.appendChild(o); });
+  var selT = $("type");
+  TYPES.forEach(function(t){ var o=document.createElement("option"); o.value=t.id; o.textContent=t.nom; selT.appendChild(o); });
+
+  var anneeMax = new Date().getFullYear();
+  $("annee").max = anneeMax;
+
+  // Lit un montant saisi à la française ("5 000,50") ou à l'anglaise ("5000.50").
+  // Renvoie null si le champ est vide, NaN si la saisie n'est pas un montant valide.
+  function lireMontant(el){
+    var s = el.value.replace(/[\s  ]/g,"").replace(",",".");
+    if(s==="") return null;
+    var v = /^\d*\.?\d+$|^\d+\.$/.test(s) ? Number(s) : NaN;
+    return isFinite(v) ? v : NaN;
+  }
+  function montant(id){
+    var el=$(id), err=$(id+"-err"), v=lireMontant(el);
+    if(v!==v){
+      el.setAttribute("aria-invalid","true");
+      err.textContent="Montant non reconnu. Utilisez seulement des chiffres, par exemple 5000 ou 5000,50.";
+      err.hidden=false;
+      return 0;
+    }
+    el.removeAttribute("aria-invalid"); err.hidden=true;
+    return v===null ? 0 : v;
+  }
+  function ecrireMontant(v, devise){
+    return devise==="XOF" ? String(Math.round(v)) : String(Math.round(v*100)/100).replace(".",",");
+  }
+  function fcfa(n){ return Math.round(n).toLocaleString("fr-FR") + " FCFA"; }
+  function radio(name){ var r=document.querySelector('input[name="'+name+'"]:checked'); return r ? r.value : ""; }
+
+  // Convertit les montants déjà saisis quand on change de devise, pour que le calcul reste juste.
+  var devisePrec = radio("devise");
+  function changerDevise(){
+    var d = radio("devise");
+    if(d===devisePrec) return;
+    var convertis = 0;
+    MONTANTS.forEach(function(id){
+      var el=$(id), v=lireMontant(el);
+      if(v===null || v!==v) return;
+      el.value = ecrireMontant(d==="XOF" ? v*EUR : v/EUR, d);
+      convertis++;
+    });
+    var c=$("conv");
+    c.textContent = convertis ? "Montants convertis en "+(d==="XOF"?"FCFA":"euros")+" au taux fixe 1 € = 655,957 FCFA." : "";
+    c.hidden = !convertis;
+    devisePrec = d;
+  }
+
+  function ligne(code, titre, explication, montant, cls){
+    var li=document.createElement("li"); if(cls) li.className=cls;
+    li.innerHTML='<span class="code">'+code+'</span><span class="lab"></span><span class="amt"></span>';
+    li.querySelector(".lab").textContent=titre;
+    var s=document.createElement("small"); s.textContent=explication; li.querySelector(".lab").appendChild(s);
+    li.querySelector(".amt").textContent=fcfa(montant);
+    return li;
+  }
+
+  function calculer(){
+    var p = PAYS[selP.value];
+    var t = TYPES.filter(function(x){ return x.id===selT.value; })[0];
+    var devise = radio("devise");
+    var etat = radio("etat");
+    var annee = parseInt($("annee").value,10);
+    var taux = devise==="EUR" ? EUR : 1;
+
+    Array.prototype.forEach.call(document.querySelectorAll(".cur"), function(el){ el.textContent = devise==="EUR" ? "(€)" : "(FCFA)"; });
+    $("t-port").textContent = p.port;
+
+    // Chaque ligne est arrondie au franc avant d'être additionnée : le total est la somme exacte des lignes affichées.
+    var R = Math.round;
+    var cif = R((montant("prix")+montant("fret")+montant("assur")) * taux);
+    var dd = R(cif*t.dd/100), rs = R(cif*0.01), pcs = R(cif*0.01), pc = R(cif*0.005);
+    var tva = R((cif+dd+rs+pcs+pc)*0.18);
+    var total = dd+rs+pcs+pc+tva;
+
+    // Vérification de l'âge
+    var al = $("alerte"), refuse=false;
+    var limite = t.cat==="vp" ? p.vp : (t.cat==="lourd" ? p.lourd : null);
+    if(etat==="neuf"){
+      al.className="alert ok"; al.textContent="Véhicule neuf : pas de limite d'âge à vérifier.";
+    } else if(!annee || annee<1980 || annee>anneeMax){
+      al.className="alert info"; al.textContent="Entrez l'année de fabrication pour vérifier si le véhicule a le droit d'entrer.";
+    } else if(limite){
+      var age = anneeMax-annee;
+      if(age>limite){
+        refuse=true; al.className="alert bad";
+        al.textContent="Attention : ce véhicule a "+age+" ans. Au "+p.nom+", la limite est de "+limite+" ans pour ce type de véhicule d'occasion"+p.note+". Il risque d'être refusé au port.";
+      } else {
+        al.className="alert ok";
+        al.textContent="Âge accepté : "+age+" an"+(age>1?"s":"")+" (limite au "+p.nom+" : "+limite+" ans"+p.note+").";
+      }
+    } else {
+      var age2 = anneeMax-annee;
+      al.className="alert warn";
+      al.textContent="Ce véhicule a "+age2+" an"+(age2>1?"s":"")+". Ce calculateur ne connaît pas la limite d'âge pour ce type de véhicule au "+p.nom+". Certains pays en fixent une pour les utilitaires et les véhicules anciens : vérifiez auprès des douanes ou d'un transitaire avant d'acheter.";
+    }
+    $("calc").classList.toggle("dim", refuse);
+
+    var ol=$("lignes"); ol.innerHTML="";
+    ol.appendChild(ligne("CIF","Valeur en douane","Prix + fret + assurance"+(devise==="EUR"?", converti en FCFA (1 € = 655,957 FCFA)":"")+". Toutes les taxes se calculent à partir de ce montant.",cif,"cif"));
+    ol.appendChild(ligne("DD","Droit de douane · "+t.dd+" %","La taxe principale. Son taux dépend du type de véhicule : "+t.nom.toLowerCase()+".",dd));
+    ol.appendChild(ligne("RS","Redevance statistique · 1 %","Finance le suivi des importations par la douane.",rs));
+    ol.appendChild(ligne("PCS","Prélèvement UEMOA · 1 %","Contribution à l'Union économique et monétaire ouest-africaine.",pcs));
+    ol.appendChild(ligne("PC","Prélèvement CEDEAO · 0,5 %","Contribution à la Communauté des États d'Afrique de l'Ouest.",pc));
+    ol.appendChild(ligne("TVA","TVA · 18 %","Calculée sur la valeur CIF plus toutes les taxes ci-dessus, pas seulement sur le prix. C'est pour ça qu'elle pèse lourd.",tva));
+
+    $("total").textContent = fcfa(total);
+    $("pct").textContent = cif>0 ? (total/cif*100).toFixed(1).replace(".",",")+" %" : "—";
+    $("grand").textContent = fcfa(cif+total);
+
+    var docs=[
+      ["Facture d'achat","Remise par le vendeur ou le concessionnaire."],
+      ["Connaissement (Bill of Lading)","Remis par la compagnie maritime à l'expédition."],
+      ["Carte grise d'origine","À récupérer auprès du vendeur, en original."],
+      ["Pièce d'identité de l'importateur","Carte d'identité ou passeport valide."],
+      ["Identifiant fiscal","Demandé selon le pays, auprès des impôts."],
+      ["Déclaration en douane","Faite par un transitaire agréé au "+p.port+"."]
+    ];
+    var ul=$("docs"); ul.innerHTML="";
+    docs.forEach(function(d){ var li=document.createElement("li"); var b=document.createElement("b"); b.textContent=d[0]; var s=document.createElement("span"); s.textContent=d[1]; li.appendChild(b); li.appendChild(s); ul.appendChild(li); });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="devise"]'), function(r){
+    r.addEventListener("change", function(){ changerDevise(); calculer(); });
+  });
+  MONTANTS.forEach(function(id){ $(id).addEventListener("input", function(){ $("conv").hidden=true; }); });
+  var f=$("f");
+  f.addEventListener("input", calculer);
+  f.addEventListener("change", calculer);
+  f.addEventListener("submit", function(e){ e.preventDefault(); });
+  calculer();
+})();
+</script>
+</body>
+</html>
