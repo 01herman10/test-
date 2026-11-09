@@ -1,0 +1,7 @@
+piper-tts-web 1.0.5 (@mintplex-labs/piper-tts-web) - licence MIT. https://github.com/Mintplex-Labs/piper-tts-web
+piper_phonemize.wasm / piper_phonemize.data (@diffusionstudio/piper-wasm 1.0.0) - licence MIT pour le code ;
+les données de prononciation proviennent de eSpeak NG (licence GPL-3.0, https://github.com/espeak-ng/espeak-ng).
+Voix (téléchargées depuis huggingface.co au premier usage) :
+- fr_FR-siwis-medium : jeu de données SIWIS, licence CC-BY 4.0 (attribution requise)
+- fr_FR-gilles-low : licence CC0
+- fr_FR-upmc-medium : jeu de données UPMC, licence CC-BY-SA 4.0

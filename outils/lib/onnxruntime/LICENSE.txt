@@ -1,0 +1,2 @@
+ONNX Runtime Web (onnxruntime-web 1.30.0, et 1.31.0-dev pour transformers.js) - licence MIT
+Copyright (c) Microsoft Corporation. https://github.com/microsoft/onnxruntime

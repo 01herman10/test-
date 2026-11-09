@@ -6,11 +6,31 @@ Site statique publié sur Netlify (douane-afrique.netlify.app). Tout fonctionne 
 |---|---|---|
 | Calculateur de douane | `/` | Droits et taxes d'un véhicule en zone UEMOA |
 | Boîte à outils | `/outils/` | Accueil des outils ci-dessous |
+| Studio vidéo IA | `/outils/studio.html` | Fond, personnage animé, voix IA et sous-titres réunis dans une vidéo (WebM ou MP4) |
+| Voix IA | `/outils/voix.html` | Texte → voix française (WAV) |
+| Sous-titres IA | `/outils/sous-titres.html` | Transcription automatique (SRT, VTT) et incrustation dans la vidéo |
+| Détourage IA | `/outils/detourage.html` | Retirer le fond d'une photo (personnes, objets, véhicules) |
 | Vitrine photos | `/outils/galerie.html` | Diaporama et galerie avec zoom |
 | Documents PDF | `/outils/documents.html` | Devis en PDF, fusion de PDF, lecture de PDF |
 | Tableur | `/outils/tableur.html` | Ouvrir, modifier et enregistrer des fichiers Excel ou CSV ; modèle de suivi des dossiers |
 | Atelier vidéo | `/outils/video.html` | Couper, compresser, convertir en GIF, extraire le son |
 | Espace admin | `/admin/` | Ajouter ou retirer des photos de la vitrine |
+
+## Outils de vidéo IA
+
+Les moteurs d'IA tournent dans le navigateur : rien n'est envoyé sur un serveur. Les fichiers des moteurs sont dans `outils/lib/` ; les modèles d'IA sont téléchargés depuis huggingface.co au premier usage, puis gardés en cache par le navigateur :
+
+| Usage | Modèle | Taille | Licence |
+|---|---|---|---|
+| Voix « Siwis » (femme) | Piper fr_FR-siwis-medium | ≈ 60 Mo | CC-BY 4.0 : citer « voix SIWIS » |
+| Voix « Gilles » (homme) | Piper fr_FR-gilles-low | ≈ 60 Mo | CC0 |
+| Voix « UPMC » (femme) | Piper fr_FR-upmc-medium | ≈ 75 Mo | CC-BY-SA 4.0 |
+| Sous-titres rapides | Whisper base | ≈ 80 Mo | MIT |
+| Sous-titres précis | Whisper small | ≈ 250 Mo | MIT |
+| Détourage de personnes | MODNet | ≈ 7 Mo | Apache 2.0 |
+| Détourage d'objets et véhicules | ORMBG | ≈ 45 Mo | Apache 2.0 |
+
+Ce qui n'est pas possible dans un navigateur : générer des images ou des vidéos entières par IA (décors, personnages réalistes, avatars qui parlent à partir d'une photo). Ces modèles demandent une carte graphique puissante sur un serveur.
 
 ## Espace admin (photos de la vitrine)
 
@@ -49,6 +69,10 @@ Remotion est gratuit pour les particuliers et les petites entreprises ; une entr
 | PDF.js | 6.4.299 | Apache 2.0 | `outils/lib/pdfjs/` |
 | SheetJS (édition communautaire) | 0.20.3 | Apache 2.0 | `outils/lib/sheetjs/` |
 | ffmpeg.wasm | 0.12.15 | MIT | `outils/lib/ffmpeg/` (le moteur FFmpeg, GPL, est chargé depuis cdn.jsdelivr.net) |
+| transformers.js | 4.3.1 | Apache 2.0 | chargé depuis cdn.jsdelivr.net par `outils/ia.js` ; ses fichiers ONNX Runtime sont dans `outils/lib/transformers/` |
+| ONNX Runtime Web | 1.30.0 et 1.31.0-dev | MIT | `outils/lib/onnxruntime/`, `outils/lib/transformers/` |
+| piper-tts-web, piper-wasm | 1.0.5, 1.0.0 | MIT (données eSpeak NG : GPL-3.0) | `outils/lib/piper/` |
+| Police DejaVu Sans | – | licence libre DejaVu | `outils/lib/polices/` |
 | Decap CMS | 3.17.1 | MIT | chargé depuis unpkg.com par `admin/index.html` |
 | Remotion | 4.0.537 | Licence Remotion | `video/` (installé par npm) |
 

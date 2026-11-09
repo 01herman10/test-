@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Voix IA</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"onnxruntime-web/wasm":"./lib/onnxruntime/ort.wasm.min.mjs"}}</script>
+<style>audio{width:100%} progress{width:100%;height:10px}</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top"><a href="index.html">← Boîte à outils</a><a href="studio.html">Studio vidéo IA</a></nav>
+  <header>
+    <div class="eyebrow">Voix IA</div>
+    <h1>Transformez un texte en voix française</h1>
+    <p class="lead">Écrivez votre texte, choisissez une voix, puis écoutez et téléchargez le fichier son. La voix est créée sur votre appareil.</p>
+  </header>
+  <section class="card">
+    <label>Texte à lire<textarea id="texte" rows="5">Bonjour ! Voici une Toyota Corolla de 2022, en excellent état. Prix : cinq mille euros, livraison au port d'Abidjan. Contactez-nous vite !</textarea></label>
+    <div class="row">
+      <label>Voix<select id="voix"></select></label>
+      <div><button type="button" id="go">Créer la voix</button></div>
+    </div>
+    <p class="hint" id="licence"></p>
+    <p class="msg info" id="msg">Le premier essai d'une voix télécharge son modèle (environ 60 Mo). Les fois suivantes, c'est immédiat.</p>
+    <progress id="prog" max="1" value="0" hidden></progress>
+  </section>
+  <section class="card" id="res" hidden>
+    <h2>Résultat</h2>
+    <audio id="lecteur" controls></audio>
+    <div><a class="btn" id="dl" download="voix.wav">Télécharger (WAV)</a></div>
+  </section>
+  <p class="fine">Voix Piper, téléchargées depuis huggingface.co. Si vous publiez une vidéo avec la voix Siwis, mentionnez « voix SIWIS (CC-BY 4.0) » dans la description.</p>
+</div>
+<script type="module">
+import { VOIX, parler } from "./ia.js";
+const sel = document.getElementById("voix"), msg = document.getElementById("msg"), prog = document.getElementById("prog"), go = document.getElementById("go");
+VOIX.forEach(v => { const o = document.createElement("option"); o.value = v.id; o.textContent = v.nom; sel.appendChild(o); });
+const lic = () => document.getElementById("licence").textContent = "Licence de cette voix : " + VOIX.find(v => v.id === sel.value).licence;
+sel.addEventListener("change", lic); lic();
+go.addEventListener("click", async () => {
+  const t = document.getElementById("texte").value.trim();
+  if (!t) { msg.className = "msg bad"; msg.textContent = "Écrivez d'abord un texte."; return; }
+  go.disabled = true; prog.hidden = false; prog.value = 0; msg.className = "msg info"; msg.textContent = "Préparation de la voix…";
+  try {
+    const wav = await parler(t, sel.value, p => { if (go.disabled) { prog.value = p; msg.textContent = "Téléchargement de la voix : " + Math.round(p * 100) + " %"; } });
+    const url = URL.createObjectURL(wav);
+    document.getElementById("lecteur").src = url; document.getElementById("dl").href = url;
+    document.getElementById("res").hidden = false;
+    msg.className = "msg ok"; msg.textContent = "Voix créée. Écoutez-la ci-dessous.";
+  } catch (e) { msg.className = "msg bad"; msg.textContent = "La création de la voix a échoué (" + e.message + "). Vérifiez votre connexion pour le premier téléchargement."; }
+  finally { go.disabled = false; prog.hidden = true; }
+});
+</script>
+</body>
+</html>

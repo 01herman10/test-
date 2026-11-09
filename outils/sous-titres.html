@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sous-titres IA</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"onnxruntime-web/wasm":"./lib/onnxruntime/ort.wasm.min.mjs"}}</script>
+<style>
+progress{width:100%;height:10px}
+video{max-width:100%;max-height:60vh;border-radius:8px;background:#000}
+.segs{display:flex;flex-direction:column;gap:8px}
+.seg{display:grid;grid-template-columns:88px 88px 1fr;gap:8px;align-items:center}
+@media (max-width:520px){.seg{grid-template-columns:1fr 1fr}.seg .t{grid-column:1/-1}}
+.seg input{font-family:var(--f-mono);font-size:14px}
+.seg input.t{font-family:var(--f-body);font-size:15px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top"><a href="index.html">← Boîte à outils</a><a href="studio.html">Studio vidéo IA</a></nav>
+  <header>
+    <div class="eyebrow">Sous-titres IA</div>
+    <h1>Des sous-titres automatiques pour vos vidéos</h1>
+    <p class="lead">L'IA écoute la vidéo et écrit les sous-titres en français. Corrigez-les si besoin, puis téléchargez le fichier ou incrustez-les dans la vidéo.</p>
+  </header>
+  <section class="card">
+    <label>Vidéo ou fichier son<input type="file" id="fichier" accept="video/*,audio/*"></label>
+    <video id="apercu" controls playsinline hidden></video>
+    <div class="row">
+      <label>Qualité<select id="qualite"><option value="rapide">Rapide (≈ 80 Mo)</option><option value="precis">Précis (≈ 250 Mo, ordinateur conseillé)</option></select></label>
+      <div><button type="button" id="go" disabled>Créer les sous-titres</button></div>
+    </div>
+    <p class="msg info" id="msg">Choisissez une vidéo. Le premier usage télécharge le modèle d'IA, ensuite c'est plus rapide.</p>
+    <progress id="prog" max="1" value="0" hidden></progress>
+  </section>
+  <section class="card" id="edition" hidden>
+    <h2>Sous-titres (modifiables)</h2>
+    <p class="hint">Début et fin en secondes. Corrigez le texte directement dans les cases.</p>
+    <div class="segs" id="segs"></div>
+    <div class="row">
+      <button type="button" class="sec" id="srt">Télécharger .srt</button>
+      <button type="button" class="sec" id="vtt">Télécharger .vtt</button>
+      <button type="button" id="incruster">Incruster dans la vidéo (MP4)</button>
+    </div>
+    <p class="msg info" id="msg2" hidden></p>
+    <progress id="prog2" max="1" value="0" hidden></progress>
+  </section>
+  <section class="card" id="res" hidden>
+    <h2>Vidéo sous-titrée</h2>
+    <video id="resultat" controls playsinline></video>
+    <div><a class="btn" id="dl" download="video-sous-titree.mp4">Télécharger la vidéo</a></div>
+  </section>
+  <p class="fine">Transcription par Whisper (OpenAI, licence MIT) via transformers.js. Incrustation par ffmpeg.wasm avec la police DejaVu Sans.</p>
+</div>
+<script src="lib/ffmpeg/ffmpeg.js"></script>
+<script src="lib/ffmpeg/ffmpeg-util.js"></script>
+<script type="module">
+import { audio16k, transcrire, versSRT, versVTT, telecharger } from "./ia.js";
+const $ = id => document.getElementById(id);
+let fichier = null, segments = [];
+const etat = (el, cls, t) => { el.hidden = false; el.className = "msg " + cls; el.textContent = t; };
+
+$("fichier").addEventListener("change", e => {
+  fichier = e.target.files[0] || null; $("go").disabled = !fichier;
+  if (fichier) { $("apercu").src = URL.createObjectURL(fichier); $("apercu").hidden = false; etat($("msg"), "info", "Prêt : " + fichier.name); }
+});
+
+function lireSegments() {
+  return [...document.querySelectorAll(".seg")].map(d => ({
+    debut: Number(d.querySelector(".d").value.replace(",", ".")) || 0,
+    fin: Number(d.querySelector(".f").value.replace(",", ".")) || 0,
+    texte: d.querySelector(".t").value.trim(),
+  })).filter(s => s.texte);
+}
+function afficher() {
+  const z = $("segs"); z.innerHTML = "";
+  segments.forEach(s => {
+    const d = document.createElement("div"); d.className = "seg";
+    d.innerHTML = '<input class="d" type="text" inputmode="decimal" aria-label="Début"><input class="f" type="text" inputmode="decimal" aria-label="Fin"><input class="t" type="text" aria-label="Texte">';
+    d.querySelector(".d").value = s.debut.toFixed(2); d.querySelector(".f").value = s.fin.toFixed(2); d.querySelector(".t").value = s.texte;
+    z.appendChild(d);
+  });
+  $("edition").hidden = false;
+}
+
+$("go").addEventListener("click", async () => {
+  $("go").disabled = true; $("prog").hidden = false; $("prog").value = 0;
+  try {
+    etat($("msg"), "info", "Lecture du son…");
+    const son = await audio16k(fichier);
+    etat($("msg"), "info", "Chargement de l'IA…");
+    const t0 = performance.now();
+    segments = await transcrire(son, $("qualite").value, p => { if (!$("go").disabled) return; $("prog").value = p; $("msg").textContent = "Téléchargement du modèle : " + Math.round(p * 100) + " %"; });
+    if (!segments.length) throw new Error("aucune parole détectée");
+    afficher();
+    etat($("msg"), "ok", segments.length + " sous-titres créés en " + Math.round((performance.now() - t0) / 1000) + " s. Relisez-les ci-dessous.");
+  } catch (e) { etat($("msg"), "bad", "Échec : " + e.message + ". Vérifiez que la vidéo contient du son."); }
+  finally { $("go").disabled = false; $("prog").hidden = true; }
+});
+$("srt").addEventListener("click", () => telecharger(new Blob([versSRT(lireSegments())], { type: "text/plain" }), "sous-titres.srt"));
+$("vtt").addEventListener("click", () => telecharger(new Blob([versVTT(lireSegments())], { type: "text/vtt" }), "sous-titres.vtt"));
+
+let ffmpeg = null;
+$("incruster").addEventListener("click", async () => {
+  if (!fichier) return;
+  const b = $("incruster"); b.disabled = true; $("prog2").hidden = false; $("prog2").value = 0;
+  try {
+    if (!ffmpeg) {
+      etat($("msg2"), "info", "Téléchargement du moteur vidéo (≈ 30 Mo, une seule fois)…");
+      const CORE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/";
+      ffmpeg = new FFmpegWASM.FFmpeg();
+      ffmpeg.on("progress", p => $("prog2").value = Math.max(0, Math.min(1, p.progress || 0)));
+      await ffmpeg.load({ coreURL: await FFmpegUtil.toBlobURL(CORE + "ffmpeg-core.js", "text/javascript"), wasmURL: await FFmpegUtil.toBlobURL(CORE + "ffmpeg-core.wasm", "application/wasm") });
+    }
+    etat($("msg2"), "info", "Incrustation en cours… Gardez la page ouverte.");
+    await ffmpeg.createDir("/polices").catch(() => {});
+    await ffmpeg.writeFile("/polices/DejaVuSans-Bold.ttf", await FFmpegUtil.fetchFile("lib/polices/DejaVuSans-Bold.ttf"));
+    await ffmpeg.writeFile("st.srt", new TextEncoder().encode(versSRT(lireSegments())));
+    const ext = (fichier.name.split(".").pop() || "mp4").toLowerCase();
+    await ffmpeg.writeFile("in." + ext, await FFmpegUtil.fetchFile(fichier));
+    const style = "FontName=DejaVu Sans,Bold=1,FontSize=16,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,MarginV=40";
+    const code = await ffmpeg.exec(["-i", "in." + ext, "-vf", `subtitles=st.srt:fontsdir=/polices:force_style='${style}'`, "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-c:a", "aac", "-movflags", "+faststart", "-y", "out.mp4"]);
+    if (code !== 0) throw new Error("code " + code);
+    const data = await ffmpeg.readFile("out.mp4");
+    const url = URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" }));
+    $("resultat").src = url; $("dl").href = url; $("res").hidden = false;
+    etat($("msg2"), "ok", "Vidéo sous-titrée prête.");
+  } catch (e) { etat($("msg2"), "bad", "L'incrustation a échoué (" + e.message + "). Essayez une vidéo plus courte."); }
+  finally { b.disabled = false; $("prog2").hidden = true; }
+});
+</script>
+</body>
+</html>

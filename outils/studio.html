@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Studio vidéo IA</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"onnxruntime-web/wasm":"./lib/onnxruntime/ort.wasm.min.mjs"}}</script>
+<style>
+.studio{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+@media (min-width:900px){.studio{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.scene{display:flex;justify-content:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+#scene{max-width:100%;max-height:70vh;border-radius:8px;background:#000}
+fieldset{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+legend{font-family:var(--f-display);font-weight:600;padding:0 6px}
+input[type=color]{width:56px;height:40px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:2px}
+input[type=range]{width:100%}
+progress{width:100%;height:10px}
+video.res{max-width:100%;max-height:60vh;border-radius:8px;background:#000}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top"><a href="index.html">← Boîte à outils</a><a href="voix.html">Voix IA</a><a href="detourage.html">Détourage IA</a><a href="sous-titres.html">Sous-titres IA</a></nav>
+  <header>
+    <div class="eyebrow">Studio vidéo IA</div>
+    <h1>Créez une vidéo avec fond, personnage, voix et sous-titres</h1>
+    <p class="lead">Écrivez votre texte : l'IA le lit avec une voix française, le personnage parle et les sous-titres s'affichent. Tout se fait sur votre appareil.</p>
+  </header>
+
+  <div class="studio">
+    <div class="scene"><canvas id="scene" width="720" height="1280" aria-label="Aperçu de la vidéo"></canvas></div>
+
+    <div class="card">
+      <fieldset>
+        <legend>1. Texte et voix</legend>
+        <label>Titre en haut de l'écran<input type="text" id="titre" value="À VENDRE"></label>
+        <label>Texte lu par la voix<textarea id="texte" rows="5">Bonjour ! Voici une Toyota Corolla de 2022, en excellent état. Prix : cinq mille euros, livraison au port d'Abidjan. Contactez-nous vite !</textarea></label>
+        <div class="row">
+          <label>Voix<select id="voix"></select></label>
+          <label>Ou votre propre son<input type="file" id="son-perso" accept="audio/*"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>2. Fond</legend>
+        <div class="row">
+          <label>Type<select id="fond-type"><option value="degrade">Dégradé de couleurs</option><option value="image">Photo</option><option value="video">Vidéo</option></select></label>
+          <label id="l-c1">Couleur 1<input type="color" id="c1" value="#0D5A66"></label>
+          <label id="l-c2">Couleur 2<input type="color" id="c2" value="#15232A"></label>
+        </div>
+        <label id="l-fond-fichier" hidden>Fichier du fond<input type="file" id="fond-fichier" accept="image/*,video/*"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>3. Personnage</legend>
+        <div class="row">
+          <label>Personnage<select id="perso-type"><option value="presentateur">Présentateur animé</option><option value="image">Votre image (PNG détourée)</option><option value="aucun">Aucun</option></select></label>
+          <label id="l-peau">Couleur de peau<input type="color" id="peau" value="#8D5524"></label>
+          <label id="l-habit">Couleur du haut<input type="color" id="habit" value="#F2C230"></label>
+        </div>
+        <label id="l-perso-fichier" hidden>Image du personnage<input type="file" id="perso-fichier" accept="image/*"></label>
+        <label>Taille<input type="range" id="taille" min="30" max="100" value="62"></label>
+        <p class="hint">Astuce : créez votre personnage avec le <a href="detourage.html">Détourage IA</a> (photo sans fond), puis choisissez « Votre image ».</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>4. Format et sous-titres</legend>
+        <div class="row">
+          <label>Format<select id="format"><option value="720x1280">Vertical (TikTok, Reels, WhatsApp)</option><option value="1280x720">Horizontal (YouTube)</option><option value="1080x1080">Carré (Facebook, Instagram)</option></select></label>
+          <label>Sous-titres<select id="st"><option value="oui">Afficher</option><option value="non">Masquer</option></select></label>
+        </div>
+      </fieldset>
+
+      <div class="row">
+        <button type="button" id="preparer">Créer la voix et prévisualiser</button>
+        <button type="button" id="exporter" disabled>Enregistrer la vidéo</button>
+      </div>
+      <p class="msg info" id="msg">Réglez votre vidéo, puis cliquez sur « Créer la voix et prévisualiser ». Le premier usage télécharge la voix (≈ 60 Mo).</p>
+      <progress id="prog" max="1" value="0" hidden></progress>
+    </div>
+  </div>
+
+  <section class="card" id="res" hidden>
+    <h2>Votre vidéo</h2>
+    <video class="res" id="video-res" controls playsinline></video>
+    <div class="row">
+      <a class="btn" id="dl-webm" download="video-ia.webm">Télécharger (WebM)</a>
+      <button type="button" class="sec" id="mp4">Convertir en MP4</button>
+      <a class="btn" id="dl-mp4" download="video-ia.mp4" hidden>Télécharger (MP4)</a>
+    </div>
+    <p class="hint">Le MP4 est le format le plus compatible (WhatsApp, TikTok, iPhone). La conversion prend un peu de temps.</p>
+  </section>
+  <p class="fine">Voix Piper (Siwis : CC-BY 4.0, à citer « voix SIWIS »). Enregistrement par le navigateur, conversion MP4 par ffmpeg.wasm.</p>
+</div>
+
+<script src="lib/ffmpeg/ffmpeg.js"></script>
+<script src="lib/ffmpeg/ffmpeg-util.js"></script>
+<script type="module">
+import { VOIX, parler } from "./ia.js";
+const $ = id => document.getElementById(id);
+const cv = $("scene"), g = cv.getContext("2d");
+const etat = (cls, t) => { $("msg").className = "msg " + cls; $("msg").textContent = t; };
+VOIX.forEach(v => { const o = document.createElement("option"); o.value = v.id; o.textContent = v.nom; $("voix").appendChild(o); });
+
+// ---------- Ressources choisies ----------
+let fondImg = null, fondVid = null, persoImg = null, audioBuf = null, sonPerso = null;
+const actx = new (window.AudioContext || window.webkitAudioContext)();
+const analyseur = actx.createAnalyser(); analyseur.fftSize = 1024;
+const mesures = new Uint8Array(analyseur.fftSize);
+
+function chargerImage(f) { return new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = URL.createObjectURL(f); }); }
+$("fond-type").addEventListener("change", () => { const t = $("fond-type").value; $("l-c1").hidden = $("l-c2").hidden = t !== "degrade"; $("l-fond-fichier").hidden = t === "degrade"; });
+$("fond-fichier").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return; fondImg = fondVid = null;
+  if (f.type.startsWith("video")) { fondVid = document.createElement("video"); fondVid.src = URL.createObjectURL(f); fondVid.muted = true; fondVid.loop = true; fondVid.playsInline = true; await fondVid.play().catch(() => {}); }
+  else fondImg = await chargerImage(f);
+});
+$("perso-type").addEventListener("change", () => { const t = $("perso-type").value; $("l-perso-fichier").hidden = t !== "image"; $("l-peau").hidden = $("l-habit").hidden = t !== "presentateur"; });
+$("perso-fichier").addEventListener("change", async e => { const f = e.target.files[0]; if (f) persoImg = await chargerImage(f); });
+$("son-perso").addEventListener("change", e => { sonPerso = e.target.files[0] || null; audioBuf = null; $("exporter").disabled = true; });
+$("format").addEventListener("change", () => { const [w, h] = $("format").value.split("x").map(Number); cv.width = w; cv.height = h; });
+$("texte").addEventListener("input", () => { if (!sonPerso) { audioBuf = null; $("exporter").disabled = true; } });
+$("voix").addEventListener("change", () => { if (!sonPerso) { audioBuf = null; $("exporter").disabled = true; } });
+
+// ---------- Sous-titres : découpe du texte en morceaux courts, minutés selon leur longueur ----------
+function morceaux(texte, duree) {
+  const phrases = texte.replace(/\s+/g, " ").match(/[^.!?…]+[.!?…]*/g) || [];
+  const parts = [];
+  phrases.forEach(p => { const mots = p.trim().split(" ").filter(Boolean); for (let i = 0; i < mots.length; i += 6) parts.push(mots.slice(i, i + 6).join(" ")); });
+  const total = parts.reduce((s, p) => s + p.length, 0) || 1; let t = 0;
+  return parts.map(p => { const d = duree * p.length / total; const m = { debut: t, fin: t + d, texte: p }; t += d; return m; });
+}
+
+// ---------- Dessin ----------
+function couvrir(src, sw, sh) { const r = Math.max(cv.width / sw, cv.height / sh), w = sw * r, h = sh * r; g.drawImage(src, (cv.width - w) / 2, (cv.height - h) / 2, w, h); }
+function texteContour(t, x, y, taille, maxW) {
+  g.font = `800 ${taille}px Archivo, "Arial Black", Arial, sans-serif`; g.textAlign = "center"; g.textBaseline = "middle";
+  const mots = t.split(" "), lignes = []; let l = "";
+  mots.forEach(m => { const essai = l ? l + " " + m : m; if (g.measureText(essai).width > maxW && l) { lignes.push(l); l = m; } else l = essai; }); if (l) lignes.push(l);
+  lignes.forEach((li, i) => { const yy = y + (i - (lignes.length - 1) / 2) * taille * 1.15; g.lineWidth = taille * 0.16; g.strokeStyle = "#000"; g.lineJoin = "round"; g.strokeText(li, x, yy); g.fillStyle = "#fff"; g.fillText(li, x, yy); });
+}
+function presentateur(cx, base, h, ouverture, t) {
+  const tete = h * 0.2, corps = h * 0.42, peau = $("peau").value, habit = $("habit").value;
+  const bob = Math.sin(t * 2) * h * 0.006 + ouverture * h * 0.01;
+  // corps
+  g.fillStyle = habit; g.beginPath(); g.ellipse(cx, base, corps * 0.75, corps, 0, Math.PI, 0); g.fill();
+  // cou + tête
+  const ty = base - corps * 0.95 - tete + bob;
+  g.fillStyle = peau; g.fillRect(cx - tete * 0.25, ty + tete * 0.7, tete * 0.5, tete * 0.6);
+  g.beginPath(); g.ellipse(cx, ty, tete * 0.82, tete, 0, 0, Math.PI * 2); g.fill();
+  // cheveux
+  g.fillStyle = "#1b1b1b"; g.beginPath(); g.ellipse(cx, ty - tete * 0.45, tete * 0.86, tete * 0.62, 0, Math.PI, 0); g.fill();
+  // yeux (clignement toutes les ~3,5 s)
+  const cligne = (t % 3.5) < 0.12 ? 0.1 : 1;
+  g.fillStyle = "#fff"; [-1, 1].forEach(s => { g.beginPath(); g.ellipse(cx + s * tete * 0.32, ty - tete * 0.05, tete * 0.15, tete * 0.15 * cligne, 0, 0, Math.PI * 2); g.fill(); });
+  g.fillStyle = "#111"; [-1, 1].forEach(s => { g.beginPath(); g.ellipse(cx + s * tete * 0.32, ty - tete * 0.03, tete * 0.07, tete * 0.07 * cligne, 0, 0, Math.PI * 2); g.fill(); });
+  // bouche : s'ouvre avec le volume de la voix
+  const bo = Math.max(0.05, Math.min(1, ouverture)) * tete * 0.32;
+  g.fillStyle = "#5a1414"; g.beginPath(); g.ellipse(cx, ty + tete * 0.45, tete * 0.28, bo, 0, 0, Math.PI * 2); g.fill();
+}
+let st = [], debutLecture = null, sourceActive = null;
+function volume() {
+  if (debutLecture === null) return 0;
+  analyseur.getByteTimeDomainData(mesures);
+  let s = 0; for (const v of mesures) { const x = (v - 128) / 128; s += x * x; }
+  return Math.min(1, Math.sqrt(s / mesures.length) * 6);
+}
+function dessiner() {
+  const W = cv.width, H = cv.height, t = performance.now() / 1000, temps = debutLecture === null ? -1 : actx.currentTime - debutLecture;
+  const type = $("fond-type").value;
+  if (type === "image" && fondImg) couvrir(fondImg, fondImg.width, fondImg.height);
+  else if (type === "video" && fondVid && fondVid.readyState >= 2) couvrir(fondVid, fondVid.videoWidth, fondVid.videoHeight);
+  else { const gr = g.createLinearGradient(0, 0, W * 0.4, H); gr.addColorStop(0, $("c1").value); gr.addColorStop(1, $("c2").value); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+  const v = volume(), taille = $("taille").value / 100, p = $("perso-type").value;
+  if (p === "presentateur") presentateur(W / 2, H, Math.min(W, H) * taille * 1.25, v, t);
+  if (p === "image" && persoImg) { const h = H * taille * 0.75, w = persoImg.width * h / persoImg.height, s = 1 + v * 0.04; g.drawImage(persoImg, (W - w * s) / 2, H - h * s, w * s, h * s); }
+  const titre = $("titre").value.trim();
+  if (titre) texteContour(titre, W / 2, H * 0.09, Math.round(Math.min(W, H) * 0.085), W * 0.9);
+  if ($("st").value === "oui" && temps >= 0) { const m = st.find(x => temps >= x.debut && temps < x.fin); if (m) texteContour(m.texte, W / 2, H * (H > W ? 0.4 : 0.82), Math.round(Math.min(W, H) * 0.07), W * 0.86); }
+  requestAnimationFrame(dessiner);
+}
+requestAnimationFrame(dessiner);
+
+// ---------- Voix ----------
+async function preparerSon() {
+  if (audioBuf) return audioBuf;
+  if (sonPerso) { audioBuf = await actx.decodeAudioData(await sonPerso.arrayBuffer()); }
+  else {
+    const t = $("texte").value.trim(); if (!t) throw new Error("écrivez d'abord un texte");
+    const wav = await parler(t, $("voix").value, x => { if ($("prog").hidden) return; $("prog").value = x; $("msg").textContent = "Téléchargement de la voix : " + Math.round(x * 100) + " %"; });
+    audioBuf = await actx.decodeAudioData(await wav.arrayBuffer());
+  }
+  st = morceaux($("texte").value, audioBuf.duration);
+  return audioBuf;
+}
+function jouer(destination) {
+  if (sourceActive) { try { sourceActive.stop(); } catch {} }
+  const src = actx.createBufferSource(); src.buffer = audioBuf;
+  src.connect(analyseur); analyseur.connect(actx.destination); if (destination) analyseur.connect(destination);
+  debutLecture = actx.currentTime + 0.05; src.start(debutLecture); sourceActive = src;
+  return new Promise(ok => src.onended = () => { if (sourceActive === src) { debutLecture = null; sourceActive = null; } if (destination) analyseur.disconnect(destination); ok(); });
+}
+
+$("preparer").addEventListener("click", async () => {
+  const b = $("preparer"); b.disabled = true; $("prog").hidden = false; $("prog").value = 0;
+  try { await actx.resume(); etat("info", "Création de la voix…"); await preparerSon(); $("exporter").disabled = false; etat("ok", "Aperçu en cours (" + audioBuf.duration.toFixed(1).replace(".", ",") + " s). Si tout vous plaît, cliquez sur « Enregistrer la vidéo »."); jouer(); }
+  catch (e) { etat("bad", "Échec : " + e.message + "."); }
+  finally { b.disabled = false; $("prog").hidden = true; }
+});
+
+// ---------- Enregistrement ----------
+let webm = null;
+$("exporter").addEventListener("click", async () => {
+  const b = $("exporter"); b.disabled = true; $("preparer").disabled = true;
+  try {
+    await actx.resume(); await preparerSon();
+    const dest = actx.createMediaStreamDestination();
+    const flux = new MediaStream([...cv.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+    const type = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"].find(t => MediaRecorder.isTypeSupported(t)) || "";
+    const rec = new MediaRecorder(flux, type ? { mimeType: type, videoBitsPerSecond: 5e6 } : undefined), morceauxVideo = [];
+    rec.ondataavailable = e => e.data.size && morceauxVideo.push(e.data);
+    const fini = new Promise(ok => rec.onstop = ok);
+    etat("info", "Enregistrement en cours (" + audioBuf.duration.toFixed(1).replace(".", ",") + " s)… Gardez cette page visible.");
+    rec.start(250); await jouer(dest); await new Promise(r => setTimeout(r, 300)); rec.stop(); await fini;
+    webm = new Blob(morceauxVideo, { type: "video/webm" });
+    const url = URL.createObjectURL(webm);
+    $("video-res").src = url; $("dl-webm").href = url; $("dl-mp4").hidden = true; $("res").hidden = false;
+    etat("ok", "Vidéo enregistrée (" + (webm.size / 1048576).toFixed(1).replace(".", ",") + " Mo). Téléchargez-la ou convertissez-la en MP4.");
+  } catch (e) { etat("bad", "L'enregistrement a échoué (" + e.message + ")."); }
+  finally { b.disabled = false; $("preparer").disabled = false; }
+});
+
+let ffmpeg = null;
+$("mp4").addEventListener("click", async () => {
+  if (!webm) return; const b = $("mp4"); b.disabled = true; $("prog").hidden = false; $("prog").value = 0;
+  try {
+    if (!ffmpeg) {
+      etat("info", "Téléchargement du moteur vidéo (≈ 30 Mo, une seule fois)…");
+      const CORE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/";
+      ffmpeg = new FFmpegWASM.FFmpeg();
+      ffmpeg.on("progress", p => $("prog").value = Math.max(0, Math.min(1, p.progress || 0)));
+      await ffmpeg.load({ coreURL: await FFmpegUtil.toBlobURL(CORE + "ffmpeg-core.js", "text/javascript"), wasmURL: await FFmpegUtil.toBlobURL(CORE + "ffmpeg-core.wasm", "application/wasm") });
+    }
+    etat("info", "Conversion en MP4…");
+    await ffmpeg.writeFile("in.webm", await FFmpegUtil.fetchFile(webm));
+    const code = await ffmpeg.exec(["-i", "in.webm", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", "out.mp4"]);
+    if (code !== 0) throw new Error("code " + code);
+    const data = await ffmpeg.readFile("out.mp4");
+    $("dl-mp4").href = URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" })); $("dl-mp4").hidden = false;
+    etat("ok", "MP4 prêt : cliquez sur « Télécharger (MP4) ».");
+  } catch (e) { etat("bad", "La conversion a échoué (" + e.message + ")."); }
+  finally { b.disabled = false; $("prog").hidden = true; }
+});
+</script>
+</body>
+</html>
