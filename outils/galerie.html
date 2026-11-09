@@ -10,23 +10,22 @@
 <link rel="stylesheet" href="lib/photoswipe/photoswipe.css">
 <style>
 /* Bandeau d'accroche : la balance de la douane en fond, la phrase d'accroche par-dessus */
-.hero{position:relative;overflow:hidden;border-radius:16px;min-height:380px;display:flex;align-items:center;
-  background:linear-gradient(150deg,#0D5A66 0%,#15232A 78%);color:#F4F7F6}
-.hero .balance{position:absolute;right:3%;top:50%;transform:translateY(-50%);height:90%;width:auto;max-width:58%;opacity:.95;pointer-events:none}
-.hero .texte{position:relative;z-index:1;display:flex;flex-direction:column;gap:14px;padding:36px 28px;max-width:560px}
+.hero{position:relative;overflow:hidden;border-radius:16px;min-height:420px;display:flex;align-items:center;
+  background:linear-gradient(180deg,#121318 0%,#04202c 55%,#002a3a 100%);color:#F4F7F6}
+.hero .balance{position:absolute;right:0;top:0;height:100%;width:auto;max-width:62%;object-fit:cover;object-position:center;pointer-events:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 30%);mask-image:linear-gradient(90deg,transparent 0%,#000 30%)}
+.hero .texte{position:relative;z-index:1;display:flex;flex-direction:column;gap:14px;padding:36px 28px;max-width:540px}
 .hero .eyebrow{color:#F2C230}
-.hero h1{color:#fff;font-size:clamp(30px,6vw,52px);margin:0}
+.hero h1{color:#fff;font-size:clamp(30px,6vw,52px);margin:0;text-shadow:0 2px 12px rgba(0,0,0,.5)}
 .hero p{margin:0;color:#D5E0DF;font-size:17px;max-width:44ch}
 .hero .actions{display:flex;gap:10px;flex-wrap:wrap}
 .hero .btn{background:#F2C230;color:#15232A}
 .hero .btn.sec{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45)}
-@media (max-width:640px){
-  .hero{min-height:520px;align-items:flex-start}
-  .hero .balance{top:auto;bottom:10px;right:50%;transform:translateX(50%);height:48%;max-width:none;opacity:.55}
+@media (max-width:760px){
+  .hero{min-height:620px;align-items:flex-start}
+  .hero .balance{top:auto;bottom:0;right:0;left:0;width:100%;height:auto;max-width:none;
+    -webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 35%);mask-image:linear-gradient(180deg,transparent 0%,#000 35%)}
 }
-.fleau{transform-origin:200px 104px;animation:pese 6s ease-in-out infinite}
-@keyframes pese{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
-@media (prefers-reduced-motion:reduce){.fleau{animation:none}}
 
 .swiper{width:100%;border-radius:12px;overflow:hidden;background:var(--surface);border:1px solid var(--line)}
 .swiper-slide{position:relative;aspect-ratio:3/2;max-width:100%}
@@ -45,37 +44,7 @@
   <nav class="top"><a href="index.html">← Boîte à outils</a><a href="../admin/">Modifier la vitrine (admin)</a></nav>
 
   <section class="hero" aria-labelledby="accroche">
-    <!-- Balance de la douane : un véhicule sur un plateau, les droits et taxes (pièces FCFA) sur l'autre -->
-    <svg class="balance" viewBox="0 0 400 360" aria-hidden="true">
-      <g fill="none" stroke="#E5ECEB" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M140 338 H260 L244 310 H156 Z" fill="#1E3640"/>
-        <path d="M200 310 V104"/>
-        <circle cx="200" cy="86" r="11" fill="#F2C230" stroke="#F2C230"/>
-        <g class="fleau">
-          <path d="M62 104 H338" stroke-width="8"/>
-          <circle cx="200" cy="104" r="7" fill="#E5ECEB"/>
-          <!-- plateau gauche : le véhicule -->
-          <path d="M62 104 L28 206 M62 104 L96 206" stroke-width="3"/>
-          <path d="M18 206 Q62 240 106 206 Z" fill="#1E3640"/>
-          <g fill="#62B6C3" stroke="none">
-            <path d="M27 203 h70 a4 4 0 0 0 4-4 v-8 a4 4 0 0 0-3-4 l-12-3 l-10-12 a6 6 0 0 0-5-2 h-22 a6 6 0 0 0-5 2 l-9 12 h-6 a4 4 0 0 0-4 4 v11 a4 4 0 0 0 4 4z"/>
-            <path d="M47 174 h9 v10 h-16 z M60 174 h9 a3 3 0 0 1 2 1 l7 9 h-18 z" fill="#15232A"/>
-          </g>
-          <circle cx="44" cy="204" r="7" fill="#15232A" stroke="#E5ECEB" stroke-width="3"/>
-          <circle cx="82" cy="204" r="7" fill="#15232A" stroke="#E5ECEB" stroke-width="3"/>
-          <!-- plateau droit : les droits et taxes -->
-          <path d="M338 104 L304 206 M338 104 L372 206" stroke-width="3"/>
-          <path d="M294 206 Q338 240 382 206 Z" fill="#1E3640"/>
-          <g fill="#F2C230" stroke="#B88F12" stroke-width="2">
-            <ellipse cx="338" cy="200" rx="26" ry="7"/>
-            <ellipse cx="338" cy="191" rx="26" ry="7"/>
-            <ellipse cx="338" cy="182" rx="26" ry="7"/>
-            <ellipse cx="338" cy="173" rx="26" ry="7"/>
-          </g>
-          <text x="338" y="177" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="700" fill="#15232A" stroke="none">FCFA</text>
-        </g>
-      </g>
-    </svg>
+    <img class="balance" src="img/balance.jpg" alt="" width="740" height="576">
     <div class="texte">
       <div class="eyebrow">Dédouanement · Zone UEMOA</div>
       <h1 id="accroche">Avant d'importer, pesez le vrai prix.</h1>
