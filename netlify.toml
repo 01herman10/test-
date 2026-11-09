@@ -2,3 +2,9 @@
 [build]
   publish = "."
   command = ""
+
+# L'ancienne adresse de la vitrine renvoie vers la nouvelle.
+[[redirects]]
+  from = "/outils/galerie.html"
+  to = "/vitrine/"
+  status = 301
