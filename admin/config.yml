@@ -18,11 +18,13 @@ collections:
     label: Vitrine photos
     files:
       - name: photos
-        label: Photos de la vitrine
+        label: Accroche et photos de la vitrine
         file: photos/photos.json
         format: json
         fields:
-          - { name: titre, label: Titre de la page, widget: string }
+          - { name: accroche, label: Phrase d'accroche (en grand), widget: string }
+          - { name: sous_titre, label: Texte sous l'accroche, widget: text }
+          - { name: titre, label: Titre de la galerie, widget: string }
           - name: photos
             label: Photos
             label_singular: photo
