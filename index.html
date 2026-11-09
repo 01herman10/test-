@@ -100,7 +100,7 @@ nav.outils a:hover{text-decoration:underline}
 <div class="wrap">
   <nav class="outils"><a href="outils/">Boîte à outils →</a></nav>
   <header>
-    <div class="eyebrow">Zone UEMOA · Côte d'Ivoire · Sénégal · Bénin · Togo</div>
+    <div class="eyebrow">Zone UEMOA · 8 pays</div>
     <h1>Combien vais-je payer à la douane&nbsp;?</h1>
     <p class="lead">Entrez votre véhicule, sa valeur et le pays d'arrivée. Le calcul détaille chaque taxe et explique pourquoi vous la payez.</p>
   </header>
@@ -168,10 +168,11 @@ nav.outils a:hover{text-decoration:underline}
         <strong id="t-port"></strong>
       </div>
       <div id="alerte" class="alert" role="status" aria-live="polite"></div>
+      <div id="transit" class="alert info" hidden></div>
       <div id="calc" class="ticket" style="gap:14px">
         <ol class="lines" id="lignes"></ol>
         <div class="total" aria-live="polite" aria-atomic="true"><span>Total droits et taxes</span><span class="big" id="total"></span></div>
-        <div class="sub"><span>Soit <b id="pct"></b> de la valeur CIF</span><span>Coût total au port : <b id="grand"></b></span></div>
+        <div class="sub"><span>Soit <b id="pct"></b> de la valeur CIF</span><span><span id="l-grand">Coût total au port</span> : <b id="grand"></b></span></div>
       </div>
     </section>
   </div>
@@ -188,10 +189,17 @@ nav.outils a:hover{text-decoration:underline}
 (function(){
   var EUR = 655.957;
   var PAYS = {
-    CI:{nom:"Côte d'Ivoire", port:"Port d'Abidjan", vp:5, lourd:null, note:""},
-    SN:{nom:"Sénégal", port:"Port de Dakar", vp:10, lourd:15, note:""},
-    BJ:{nom:"Bénin", port:"Port de Cotonou", vp:10, lourd:null, note:" (limite à confirmer auprès des douanes béninoises)"},
-    TG:{nom:"Togo", port:"Port de Lomé", vp:8, lourd:null, note:""}
+    // en : préposition devant le nom du pays. enclave : pays sans accès à la mer (arrivée par un port voisin puis par la route).
+    // aes : Burkina Faso, Mali et Niger ont quitté la CEDEAO ; le prélèvement de 0,5 % y est à confirmer.
+    // vp / lourd : limite d'âge connue (en années) ; null = non renseignée dans ce calculateur.
+    BJ:{nom:"Bénin", en:"au Bénin", port:"Port de Cotonou", tva:18, vp:10, lourd:null, note:" (limite à confirmer auprès des douanes béninoises)"},
+    BF:{nom:"Burkina Faso", en:"au Burkina Faso", port:"Bureau de douane de Ouagadougou", enclave:true, aes:true, tva:18, vp:null, lourd:null, note:""},
+    CI:{nom:"Côte d'Ivoire", en:"en Côte d'Ivoire", port:"Port d'Abidjan", tva:18, vp:5, lourd:null, note:""},
+    GW:{nom:"Guinée-Bissau", en:"en Guinée-Bissau", port:"Port de Bissau", tva:18, tvaNote:" (taux à confirmer)", vp:null, lourd:null, note:""},
+    ML:{nom:"Mali", en:"au Mali", port:"Bureau de douane de Bamako", enclave:true, aes:true, tva:18, vp:null, lourd:null, note:""},
+    NE:{nom:"Niger", en:"au Niger", port:"Bureau de douane de Niamey", enclave:true, aes:true, tva:19, vp:null, lourd:null, note:""},
+    SN:{nom:"Sénégal", en:"au Sénégal", port:"Port de Dakar", tva:18, vp:10, lourd:15, note:""},
+    TG:{nom:"Togo", en:"au Togo", port:"Port de Lomé", tva:18, vp:8, lourd:null, note:""}
   };
   var TYPES = [
     {id:"voiture", nom:"Voiture particulière", dd:20, cat:"vp"},
@@ -209,6 +217,7 @@ nav.outils a:hover{text-decoration:underline}
 
   var selP = $("pays");
   Object.keys(PAYS).forEach(function(k){ var o=document.createElement("option"); o.value=k; o.textContent=PAYS[k].nom; selP.appendChild(o); });
+  selP.value="CI";
   var selT = $("type");
   TYPES.forEach(function(t){ var o=document.createElement("option"); o.value=t.id; o.textContent=t.nom; selT.appendChild(o); });
 
@@ -277,12 +286,15 @@ nav.outils a:hover{text-decoration:underline}
 
     Array.prototype.forEach.call(document.querySelectorAll(".cur"), function(el){ el.textContent = devise==="EUR" ? "(€)" : "(FCFA)"; });
     $("t-port").textContent = p.port;
+    $("l-grand").textContent = p.enclave ? "Coût total à l'arrivée" : "Coût total au port";
+    $("transit").hidden = !p.enclave;
+    $("transit").textContent = p.enclave ? "Pays sans accès à la mer : le véhicule débarque dans un port voisin (Abidjan, Lomé, Cotonou, Dakar, Tema…) puis rejoint "+p.port.replace("Bureau de douane de ","")+" par la route. Les frais de transit et de transport routier ne sont pas inclus." : "";
 
     // Chaque ligne est arrondie au franc avant d'être additionnée : le total est la somme exacte des lignes affichées.
     var R = Math.round;
     var cif = R((montant("prix")+montant("fret")+montant("assur")) * taux);
     var dd = R(cif*t.dd/100), rs = R(cif*0.01), pcs = R(cif*0.01), pc = R(cif*0.005);
-    var tva = R((cif+dd+rs+pcs+pc)*0.18);
+    var tva = R((cif+dd+rs+pcs+pc)*p.tva/100);
     var total = dd+rs+pcs+pc+tva;
 
     // Vérification de l'âge
@@ -296,15 +308,15 @@ nav.outils a:hover{text-decoration:underline}
       var age = anneeMax-annee;
       if(age>limite){
         refuse=true; al.className="alert bad";
-        al.textContent="Attention : ce véhicule a "+age+" ans. Au "+p.nom+", la limite est de "+limite+" ans pour ce type de véhicule d'occasion"+p.note+". Il risque d'être refusé au port.";
+        al.textContent="Attention : ce véhicule a "+age+" ans. "+p.en.charAt(0).toUpperCase()+p.en.slice(1)+", la limite est de "+limite+" ans pour ce type de véhicule d'occasion"+p.note+". Il risque d'être refusé à la douane.";
       } else {
         al.className="alert ok";
-        al.textContent="Âge accepté : "+age+" an"+(age>1?"s":"")+" (limite au "+p.nom+" : "+limite+" ans"+p.note+").";
+        al.textContent="Âge accepté : "+age+" an"+(age>1?"s":"")+" (limite "+p.en+" : "+limite+" ans"+p.note+").";
       }
     } else {
       var age2 = anneeMax-annee;
       al.className="alert warn";
-      al.textContent="Ce véhicule a "+age2+" an"+(age2>1?"s":"")+". Ce calculateur ne connaît pas la limite d'âge pour ce type de véhicule au "+p.nom+". Certains pays en fixent une pour les utilitaires et les véhicules anciens : vérifiez auprès des douanes ou d'un transitaire avant d'acheter.";
+      al.textContent="Ce véhicule a "+age2+" an"+(age2>1?"s":"")+". Ce calculateur ne connaît pas la limite d'âge pour ce type de véhicule "+p.en+". Certains pays en fixent une pour les utilitaires et les véhicules anciens : vérifiez auprès des douanes ou d'un transitaire avant d'acheter.";
     }
     $("calc").classList.toggle("dim", refuse);
 
@@ -313,8 +325,8 @@ nav.outils a:hover{text-decoration:underline}
     ol.appendChild(ligne("DD","Droit de douane · "+t.dd+" %","La taxe principale. Son taux dépend du type de véhicule : "+t.nom.toLowerCase()+".",dd));
     ol.appendChild(ligne("RS","Redevance statistique · 1 %","Finance le suivi des importations par la douane.",rs));
     ol.appendChild(ligne("PCS","Prélèvement UEMOA · 1 %","Contribution à l'Union économique et monétaire ouest-africaine.",pcs));
-    ol.appendChild(ligne("PC","Prélèvement CEDEAO · 0,5 %","Contribution à la Communauté des États d'Afrique de l'Ouest.",pc));
-    ol.appendChild(ligne("TVA","TVA · 18 %","Calculée sur la valeur CIF plus toutes les taxes ci-dessus, pas seulement sur le prix. C'est pour ça qu'elle pèse lourd.",tva));
+    ol.appendChild(ligne("PC",(p.aes?"Prélèvement communautaire":"Prélèvement CEDEAO")+" · 0,5 %",p.aes?"Ce pays a quitté la CEDEAO : ce prélèvement est remplacé par celui de l'Alliance des États du Sahel (AES). Taux à confirmer auprès des douanes.":"Contribution à la Communauté des États d'Afrique de l'Ouest.",pc));
+    ol.appendChild(ligne("TVA","TVA · "+p.tva+" %"+(p.tvaNote||""),"Calculée sur la valeur CIF plus toutes les taxes ci-dessus, pas seulement sur le prix. C'est pour ça qu'elle pèse lourd.",tva));
 
     $("total").textContent = fcfa(total);
     $("pct").textContent = cif>0 ? (total/cif*100).toFixed(1).replace(".",",")+" %" : "—";
@@ -328,6 +340,7 @@ nav.outils a:hover{text-decoration:underline}
       ["Identifiant fiscal","Demandé selon le pays, auprès des impôts."],
       ["Déclaration en douane","Faite par un transitaire agréé au "+p.port+"."]
     ];
+    if(p.enclave) docs.splice(5,0,["Documents de transit","Établis au port de débarquement pour traverser le pays voisin jusqu'à la frontière."]);
     var ul=$("docs"); ul.innerHTML="";
     docs.forEach(function(d){ var li=document.createElement("li"); var b=document.createElement("b"); b.textContent=d[0]; var s=document.createElement("span"); s.textContent=d[1]; li.appendChild(b); li.appendChild(s); ul.appendChild(li); });
   }
