@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Documents PDF</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.lignes{display:flex;flex-direction:column;gap:8px}
+.ligne{display:grid;grid-template-columns:1fr 80px 130px 36px;gap:8px;align-items:center}
+@media (max-width:520px){.ligne{grid-template-columns:1fr 1fr 36px}.ligne .des{grid-column:1/-1}}
+.ligne button{padding:8px 0;background:transparent;color:var(--danger);border:1px solid var(--line)}
+.total{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--mark);color:var(--mark-ink);border-radius:10px;padding:12px 16px;font-weight:600}
+ol.fichiers{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+ol.fichiers li span{margin-right:8px;word-break:break-all}
+ol.fichiers button{padding:2px 10px;font-size:13px}
+#pages{display:flex;flex-direction:column;gap:12px;align-items:center}
+#pages canvas{max-width:100%;height:auto;border:1px solid var(--line);background:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top"><a href="index.html">← Boîte à outils</a></nav>
+  <header>
+    <div class="eyebrow">Documents PDF</div>
+    <h1>Créer, fusionner et lire vos PDF</h1>
+    <p class="lead">Tout se passe sur votre appareil : vos documents ne sont envoyés nulle part.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" aria-controls="t-devis" id="b-devis">Devis en PDF</button>
+    <button role="tab" aria-selected="false" aria-controls="t-fusion" id="b-fusion">Fusionner des PDF</button>
+    <button role="tab" aria-selected="false" aria-controls="t-lire" id="b-lire">Lire un PDF</button>
+  </div>
+
+  <!-- 1. Devis -->
+  <section class="card" role="tabpanel" id="t-devis" aria-labelledby="b-devis">
+    <h2>Devis</h2>
+    <div class="grid2">
+      <label>Votre entreprise<input type="text" id="d-emetteur" value="Douane Afrique"></label>
+      <label>Client<input type="text" id="d-client" placeholder="Nom du client"></label>
+      <label>Objet<input type="text" id="d-objet" value="Importation d'un véhicule"></label>
+      <div class="row">
+        <label>Date<input type="date" id="d-date"></label>
+        <label>Devise<select id="d-devise"><option value="FCFA">FCFA</option><option value="EUR">Euro (€)</option></select></label>
+      </div>
+    </div>
+    <h2>Lignes</h2>
+    <div class="lignes" id="lignes"></div>
+    <div><button class="sec" type="button" id="d-ajout">+ Ajouter une ligne</button></div>
+    <div class="total"><span>Total</span><span class="mono" id="d-total"></span></div>
+    <label>Notes<textarea id="d-notes">Devis valable 30 jours. Estimation indicative des droits et taxes.</textarea></label>
+    <div><button type="button" id="d-pdf">Télécharger le devis en PDF</button></div>
+    <p class="hint">Exemple prérempli : remplacez les lignes par les vôtres.</p>
+  </section>
+
+  <!-- 2. Fusion -->
+  <section class="card" role="tabpanel" id="t-fusion" aria-labelledby="b-fusion" hidden>
+    <h2>Fusionner plusieurs PDF en un seul</h2>
+    <label>Choisissez vos fichiers PDF<input type="file" id="f-fichiers" accept="application/pdf" multiple></label>
+    <ol class="fichiers" id="f-liste"></ol>
+    <div><button type="button" id="f-go" disabled>Fusionner et télécharger</button></div>
+    <p class="msg info" id="f-msg" hidden></p>
+  </section>
+
+  <!-- 3. Lecture -->
+  <section class="card" role="tabpanel" id="t-lire" aria-labelledby="b-lire" hidden>
+    <h2>Lire un PDF</h2>
+    <label>Choisissez un fichier PDF<input type="file" id="l-fichier" accept="application/pdf"></label>
+    <p class="msg info" id="l-msg" hidden></p>
+    <div id="pages"></div>
+  </section>
+</div>
+
+<script src="lib/jspdf/jspdf.umd.min.js"></script>
+<script src="lib/pdf-lib/pdf-lib.min.js"></script>
+<script>
+// Onglets
+document.querySelectorAll('[role=tab]').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('[role=tab]').forEach(function(x){ x.setAttribute('aria-selected', x===b); document.getElementById(x.getAttribute('aria-controls')).hidden = x!==b; });
+  });
+});
+
+function telecharger(blob, nom){
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nom;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+}
+function lireNombre(s){ var v=Number(String(s).replace(/[\s  ]/g,'').replace(',','.')); return isFinite(v)?v:0; }
+// Les polices standard des PDF ne connaissent pas l'espace fine insécable : on la remplace par une espace normale.
+function montant(n, dev){ var s=Math.round(n*(dev==='EUR'?100:1))/(dev==='EUR'?100:1); return s.toLocaleString('fr-FR',{minimumFractionDigits:dev==='EUR'?2:0,maximumFractionDigits:dev==='EUR'?2:0}).replace(/[  ]/g,' ')+(dev==='EUR'?' €':' FCFA'); }
+
+// ---- Devis ----
+var lignes=document.getElementById('lignes');
+function ajouterLigne(des, qte, pu){
+  var d=document.createElement('div'); d.className='ligne';
+  d.innerHTML='<input class="des" type="text" aria-label="Désignation"><input class="qte" type="text" inputmode="decimal" aria-label="Quantité"><input class="pu" type="text" inputmode="decimal" aria-label="Prix unitaire"><button type="button" aria-label="Supprimer la ligne">✕</button>';
+  d.querySelector('.des').value=des||''; d.querySelector('.qte').value=qte||'1'; d.querySelector('.pu').value=pu||'';
+  d.querySelector('button').addEventListener('click', function(){ d.remove(); totaliser(); });
+  lignes.appendChild(d);
+}
+function lireLignes(){ return Array.prototype.map.call(lignes.querySelectorAll('.ligne'), function(d){ return {des:d.querySelector('.des').value.trim(), qte:lireNombre(d.querySelector('.qte').value), pu:lireNombre(d.querySelector('.pu').value)}; }).filter(function(l){ return l.des||l.pu; }); }
+function totaliser(){ var dev=document.getElementById('d-devise').value; var t=lireLignes().reduce(function(s,l){ return s+l.qte*l.pu; },0); document.getElementById('d-total').textContent=montant(t,dev); return t; }
+ajouterLigne('Droits et taxes de douane (estimation)','1','1607260');
+ajouterLigne('Honoraires du transitaire','1','250000');
+ajouterLigne('Frais de port et de parking','1','120000');
+document.getElementById('d-date').valueAsDate=new Date();
+document.getElementById('t-devis').addEventListener('input', totaliser);
+document.getElementById('d-ajout').addEventListener('click', function(){ ajouterLigne(); });
+totaliser();
+
+document.getElementById('d-pdf').addEventListener('click', function(){
+  var jsPDF=window.jspdf.jsPDF, doc=new jsPDF({unit:'mm',format:'a4'}), dev=document.getElementById('d-devise').value;
+  var v=function(id){ return document.getElementById(id).value.trim(); };
+  var dateTxt=v('d-date') ? new Date(v('d-date')+'T12:00').toLocaleDateString('fr-FR') : '';
+  var y=20;
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.text('DEVIS',20,y);
+  doc.setFontSize(11); doc.setFont('helvetica','normal');
+  doc.text(v('d-emetteur')||'',190,y,{align:'right'}); y+=7;
+  doc.text('Date : '+dateTxt,190,y,{align:'right'}); y+=12;
+  doc.setFont('helvetica','bold'); doc.text('Client',20,y); doc.setFont('helvetica','normal'); doc.text(v('d-client')||'—',45,y); y+=7;
+  doc.setFont('helvetica','bold'); doc.text('Objet',20,y); doc.setFont('helvetica','normal'); doc.text(doc.splitTextToSize(v('d-objet')||'—',145),45,y); y+=12;
+  // Tableau
+  doc.setFillColor(13,90,102); doc.rect(20,y-5,170,8,'F'); doc.setTextColor(255); doc.setFont('helvetica','bold');
+  doc.text('Désignation',23,y); doc.text('Qté',125,y,{align:'right'}); doc.text('Prix unitaire',157,y,{align:'right'}); doc.text('Total',188,y,{align:'right'});
+  doc.setTextColor(21,35,42); doc.setFont('helvetica','normal'); y+=9;
+  var total=0;
+  lireLignes().forEach(function(l){
+    var des=doc.splitTextToSize(l.des||'',95), t=l.qte*l.pu; total+=t;
+    if(y+des.length*5>270){ doc.addPage(); y=20; }
+    doc.text(des,23,y); doc.text(String(l.qte).replace('.',','),125,y,{align:'right'}); doc.text(montant(l.pu,dev),157,y,{align:'right'}); doc.text(montant(t,dev),188,y,{align:'right'});
+    y+=des.length*5+3; doc.setDrawColor(210,219,218); doc.line(20,y-4,190,y-4);
+  });
+  y+=4; doc.setFillColor(242,194,48); doc.rect(110,y-6,80,10,'F'); doc.setFont('helvetica','bold'); doc.text('TOTAL',113,y); doc.text(montant(total,dev),188,y,{align:'right'});
+  y+=14; doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(86,104,112);
+  if(v('d-notes')) doc.text(doc.splitTextToSize(v('d-notes'),170),20,y);
+  var nom='devis-'+(v('d-client')||'client').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'.pdf';
+  telecharger(doc.output('blob'), nom);
+});
+
+// ---- Fusion ----
+var fichiers=[];
+function afficherFichiers(){
+  var ol=document.getElementById('f-liste'); ol.innerHTML='';
+  fichiers.forEach(function(f,i){
+    var li=document.createElement('li'), s=document.createElement('span'); s.textContent=f.name; li.appendChild(s);
+    [['↑',-1],['↓',1]].forEach(function(m){ var b=document.createElement('button'); b.type='button'; b.className='sec'; b.textContent=m[0]; b.setAttribute('aria-label',(m[1]<0?'Monter ':'Descendre ')+f.name);
+      b.disabled = (i+m[1]<0||i+m[1]>=fichiers.length);
+      b.addEventListener('click',function(){ var j=i+m[1]; var t=fichiers[i]; fichiers[i]=fichiers[j]; fichiers[j]=t; afficherFichiers(); }); li.appendChild(b); });
+    ol.appendChild(li);
+  });
+  document.getElementById('f-go').disabled = fichiers.length<2;
+}
+document.getElementById('f-fichiers').addEventListener('change', function(e){ fichiers=Array.prototype.slice.call(e.target.files); afficherFichiers(); });
+document.getElementById('f-go').addEventListener('click', async function(){
+  var msg=document.getElementById('f-msg'); msg.hidden=false; msg.className='msg info'; msg.textContent='Fusion en cours…';
+  try{
+    var sortie=await PDFLib.PDFDocument.create();
+    for(var i=0;i<fichiers.length;i++){
+      var src=await PDFLib.PDFDocument.load(await fichiers[i].arrayBuffer(),{ignoreEncryption:true});
+      (await sortie.copyPages(src, src.getPageIndices())).forEach(function(p){ sortie.addPage(p); });
+    }
+    telecharger(new Blob([await sortie.save()],{type:'application/pdf'}),'documents-fusionnes.pdf');
+    msg.className='msg ok'; msg.textContent='PDF fusionné : '+sortie.getPageCount()+' pages au total.';
+  }catch(err){ msg.className='msg bad'; msg.textContent='La fusion a échoué : un des fichiers n\'est peut-être pas un PDF valide ('+err.message+').'; }
+});
+</script>
+<script type="module">
+// ---- Lecture (PDF.js) ----
+import * as pdfjs from "./lib/pdfjs/pdf.min.mjs";
+pdfjs.GlobalWorkerOptions.workerSrc = new URL("./lib/pdfjs/pdf.worker.min.mjs", import.meta.url).href;
+document.getElementById('l-fichier').addEventListener('change', async (e) => {
+  const f = e.target.files[0], msg = document.getElementById('l-msg'), pages = document.getElementById('pages');
+  pages.innerHTML = ''; if(!f) return;
+  msg.hidden = false; msg.className = 'msg info'; msg.textContent = 'Ouverture…';
+  try{
+    const pdf = await pdfjs.getDocument({ data: await f.arrayBuffer() }).promise;
+    msg.textContent = f.name + ' : ' + pdf.numPages + ' page' + (pdf.numPages>1?'s':'') + '.';
+    for(let i=1;i<=pdf.numPages;i++){
+      const page = await pdf.getPage(i), vp = page.getViewport({ scale: 1.5 }), c = document.createElement('canvas');
+      c.width = vp.width; c.height = vp.height; c.setAttribute('aria-label','Page '+i);
+      pages.appendChild(c);
+      await page.render({ canvas: c, canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    }
+  }catch(err){ msg.className='msg bad'; msg.textContent='Impossible de lire ce fichier : ce n\'est peut-être pas un PDF valide.'; }
+});
+</script>
+</body>
+</html>

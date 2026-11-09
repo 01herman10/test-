@@ -1,0 +1,54 @@
+# Crée une vidéo de présentation de véhicule (format vertical) avec Remotion.
+# Lancement : onglet « Actions » du dépôt > « Créer une vidéo de véhicule » > « Run workflow ».
+name: Créer une vidéo de véhicule
+
+on:
+  workflow_dispatch:
+    inputs:
+      titre:
+        description: "Véhicule (ex. Toyota Corolla 2022)"
+        required: true
+        default: "Toyota Corolla 2022"
+      details:
+        description: "Détails (ex. Occasion · Essence · Automatique)"
+        required: false
+        default: "Occasion · Essence"
+      prix:
+        description: "Prix (ex. 5 000 €)"
+        required: true
+        default: "5 000 €"
+      pays:
+        description: "Lieu de livraison"
+        required: false
+        default: "Livraison au port d'Abidjan"
+
+permissions:
+  contents: read
+
+jobs:
+  video:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: video
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: video/package-lock.json
+      - run: npm ci
+      - name: Rendu de la vidéo
+        env:
+          TITRE: ${{ inputs.titre }}
+          DETAILS: ${{ inputs.details }}
+          PRIX: ${{ inputs.prix }}
+          PAYS: ${{ inputs.pays }}
+        run: |
+          node -e 'require("fs").writeFileSync("props.json", JSON.stringify({titre:process.env.TITRE, details:process.env.DETAILS, prix:process.env.PRIX, pays:process.env.PAYS}))'
+          npx remotion render src/index.ts Vehicule out/vehicule.mp4 --props=props.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: video-vehicule
+          path: video/out/vehicule.mp4

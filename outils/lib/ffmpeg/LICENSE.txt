@@ -1,0 +1,3 @@
+ffmpeg.wasm (@ffmpeg/ffmpeg 0.12.15, @ffmpeg/util 0.12.1) - licence MIT
+https://github.com/ffmpegwasm/ffmpeg.wasm
+Le moteur @ffmpeg/core (licence GPL) n est pas inclus ici : il est charge depuis cdn.jsdelivr.net au moment de l utilisation.

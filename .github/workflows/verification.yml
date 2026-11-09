@@ -1,0 +1,19 @@
+# Vérifie à chaque envoi que tous les liens et fichiers utilisés par les pages existent bien.
+name: Vérification du site
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  liens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/verifier-liens.mjs

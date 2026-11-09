@@ -1,0 +1,33 @@
+# Configuration de l'espace admin (Decap CMS).
+# Connexion avec votre compte GitHub : voir la section « Espace admin » du README.
+backend:
+  name: github
+  repo: 01herman10/test-
+  branch: main
+  commit_messages:
+    update: "Vitrine : mise à jour de {{slug}}"
+    uploadMedia: "Vitrine : ajout de la photo {{path}}"
+    deleteMedia: "Vitrine : suppression de la photo {{path}}"
+
+locale: fr
+media_folder: photos
+public_folder: /photos
+
+collections:
+  - name: vitrine
+    label: Vitrine photos
+    files:
+      - name: photos
+        label: Photos de la vitrine
+        file: photos/photos.json
+        format: json
+        fields:
+          - { name: titre, label: Titre de la page, widget: string }
+          - name: photos
+            label: Photos
+            label_singular: photo
+            widget: list
+            fields:
+              - { name: image, label: Photo, widget: image }
+              - { name: titre, label: Titre, widget: string, required: false }
+              - { name: description, label: Description, widget: text, required: false }

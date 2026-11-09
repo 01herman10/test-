@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vitrine photos</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="lib/swiper/swiper-bundle.min.css">
+<link rel="stylesheet" href="lib/photoswipe/photoswipe.css">
+<style>
+.swiper{width:100%;border-radius:12px;overflow:hidden;background:var(--surface);border:1px solid var(--line)}
+.swiper-slide{position:relative;aspect-ratio:3/2;max-width:100%}
+.swiper-slide img{width:100%;height:100%;object-fit:cover;display:block}
+.swiper-slide .cap{position:absolute;left:0;right:0;bottom:0;padding:28px 16px 14px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.65))}
+.swiper-slide .cap b{display:block;font-family:var(--f-display);font-size:20px}
+.swiper{--swiper-theme-color:var(--mark)}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.gal a{display:block;border-radius:8px;overflow:hidden;border:1px solid var(--line);aspect-ratio:1/1}
+.gal img{width:100%;height:100%;object-fit:cover;display:block}
+.gal a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top"><a href="index.html">← Boîte à outils</a><a href="../admin/">Ajouter des photos (admin)</a></nav>
+  <header>
+    <div class="eyebrow">Vitrine photos</div>
+    <h1 id="titre">Notre vitrine</h1>
+    <p class="lead">Faites défiler le diaporama, ou touchez une photo de la galerie pour l'agrandir et zoomer.</p>
+  </header>
+  <p class="msg info" id="etat">Chargement des photos…</p>
+  <div class="swiper" id="diapo" hidden>
+    <div class="swiper-wrapper" id="slides"></div>
+    <div class="swiper-pagination"></div>
+    <div class="swiper-button-prev"></div>
+    <div class="swiper-button-next"></div>
+  </div>
+  <section class="card">
+    <h2>Galerie</h2>
+    <div class="gal" id="gal"></div>
+  </section>
+  <p class="fine">Les photos et leurs légendes sont dans <span class="mono">photos/photos.json</span>. Modifiez-les depuis l'<a href="../admin/">espace admin</a>.</p>
+</div>
+
+<script src="lib/swiper/swiper-bundle.min.js"></script>
+<script type="module">
+import PhotoSwipeLightbox from "./lib/photoswipe/photoswipe-lightbox.esm.min.js";
+
+const etat = document.getElementById("etat");
+function el(tag, attrs, text){ const e=document.createElement(tag); for(const k in attrs) e.setAttribute(k, attrs[k]); if(text) e.textContent=text; return e; }
+
+try {
+  const r = await fetch("../photos/photos.json", {cache:"no-cache"});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  const data = await r.json();
+  const photos = (data.photos || []).filter(p => p && p.image);
+  if(data.titre) document.getElementById("titre").textContent = data.titre;
+  if(!photos.length){ etat.textContent = "Aucune photo pour l'instant. Ajoutez-en depuis l'espace admin."; }
+  else {
+    etat.hidden = true;
+    const slides = document.getElementById("slides"), gal = document.getElementById("gal");
+    photos.forEach(p => {
+      const s = el("div", {class:"swiper-slide"});
+      s.appendChild(el("img", {src:p.image, alt:p.titre||"", loading:"lazy"}));
+      if(p.titre || p.description){ const c=el("div",{class:"cap"}); c.appendChild(el("b",{},p.titre||"")); if(p.description) c.appendChild(el("span",{},p.description)); s.appendChild(c); }
+      slides.appendChild(s);
+
+      const a = el("a", {href:p.image, "data-pswp-width":"1200", "data-pswp-height":"800"});
+      const img = el("img", {src:p.image, alt:p.titre||"", loading:"lazy"});
+      // PhotoSwipe a besoin des vraies dimensions : on les lit quand l'image est chargée.
+      img.addEventListener("load", () => { a.dataset.pswpWidth = img.naturalWidth; a.dataset.pswpHeight = img.naturalHeight; });
+      a.appendChild(img); gal.appendChild(a);
+    });
+    document.getElementById("diapo").hidden = false;
+    new Swiper("#diapo", { loop: photos.length > 1, autoplay: { delay: 4500, disableOnInteraction: true },
+      pagination: { el: ".swiper-pagination", clickable: true },
+      navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" } });
+    const lb = new PhotoSwipeLightbox({ gallery: "#gal", children: "a", pswpModule: () => import("./lib/photoswipe/photoswipe.esm.min.js") });
+    lb.init();
+  }
+} catch(e) {
+  etat.className = "msg bad";
+  etat.textContent = "Impossible de charger les photos (" + e.message + "). Vérifiez que le fichier photos/photos.json existe.";
+}
+</script>
+</body>
+</html>
