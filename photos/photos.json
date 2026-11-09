@@ -1,8 +1,4 @@
 {
   "titre": "Notre vitrine",
-  "photos": [
-    { "image": "/photos/exemple-1.jpg", "titre": "Exemple 1", "description": "Photo d'exemple : remplacez-la depuis l'espace admin." },
-    { "image": "/photos/exemple-2.jpg", "titre": "Exemple 2", "description": "Photo d'exemple : remplacez-la depuis l'espace admin." },
-    { "image": "/photos/exemple-3.jpg", "titre": "Exemple 3", "description": "Photo d'exemple : remplacez-la depuis l'espace admin." }
-  ]
+  "photos": []
 }
