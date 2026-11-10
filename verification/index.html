@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
 <title>Faire vérifier mon véhicule</title>
 <meta name="description" content="Avant d'acheter une voiture en Europe pour l'Afrique de l'Ouest, faites vérifier qu'elle pourra entrer dans le pays et ce qu'elle vous coûtera vraiment à l'arrivée.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -101,7 +102,7 @@ button{font:inherit;font-weight:600;font-size:17px;border:0;border-radius:10px;p
         <p class="cache"><label>Ne pas remplir : <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
         <label>Votre nom<input type="text" name="nom" id="nom" autocomplete="name" required></label>
         <div class="row">
-          <label>WhatsApp <small>avec l'indicatif, ex. +242 06 123 4567</small><input type="tel" name="whatsapp" id="whatsapp" autocomplete="tel" required></label>
+          <label>WhatsApp <small>commencez par l'indicatif du pays : +225 Côte d'Ivoire, +221 Sénégal, +33 France…</small><input type="tel" name="whatsapp" id="whatsapp" autocomplete="tel" placeholder="+…" required></label>
           <label>E-mail <small>facultatif</small><input type="email" name="email" id="email" autocomplete="email"></label>
         </div>
         <div class="row">
@@ -156,6 +157,21 @@ button{font:inherit;font-weight:600;font-size:17px;border:0;border-radius:10px;p
   mettre("annee", q.get("annee"));
   mettre("type", q.get("type"));
   if (q.get("prix")) mettre("prix", q.get("prix") + (q.get("devise") === "XOF" ? " FCFA" : " €"));
+
+  // WhatsApp : l'indicatif du pays est obligatoire, sinon le bouton WhatsApp du suivi ne peut pas ouvrir la discussion.
+  var INDICATIFS = { BJ: ["+229", "le Bénin"], BF: ["+226", "le Burkina Faso"], CI: ["+225", "la Côte d'Ivoire"], GW: ["+245", "la Guinée-Bissau"],
+    ML: ["+223", "le Mali"], NE: ["+227", "le Niger"], SN: ["+221", "le Sénégal"], TG: ["+228", "le Togo"] };
+  var wa = document.getElementById("whatsapp"), dest = document.getElementById("pays_destination");
+  function exemple() { var c = INDICATIFS[dest.value]; return c ? c[0] + " pour " + c[1] + ", ou +33 si vous êtes en France" : "+225 pour la Côte d'Ivoire ou +33 pour la France"; }
+  function verifierWhatsApp() {
+    var v = wa.value.trim(), chiffres = v.replace(/\D/g, "");
+    var ok = !v || (/^(\+|00)/.test(v) && chiffres.length >= 8);
+    wa.setCustomValidity(ok ? "" : "Ajoutez l'indicatif du pays au début du numéro, par exemple " + exemple() + ".");
+  }
+  function placeholderWhatsApp() { wa.placeholder = (INDICATIFS[dest.value] ? INDICATIFS[dest.value][0] : "+") + " …"; }
+  wa.addEventListener("input", verifierWhatsApp);
+  dest.addEventListener("change", function () { placeholderWhatsApp(); verifierWhatsApp(); });
+  placeholderWhatsApp();
 
   // À l'envoi : la demande part d'abord directement à l'API (rangée même si le filtre anti-spam se trompe),
   // puis le formulaire est envoyé normalement à Netlify Forms. La même référence évite les doublons.
