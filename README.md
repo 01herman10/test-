@@ -40,7 +40,7 @@ Les adresses privées demandent l'en-tête `Authorization: Bearer <clé>`, la cl
 
 Exemple : `https://douane-afrique.netlify.app/api/estimation?pays=CI&type=voiture&annee=2021&prix=5000&fret=400&assurance=100&devise=EUR`
 
-Tests : `npm test` (règles et traitement des demandes) ; campagne complète sur le site en ligne : `ADMIN_CLE=… node scripts/tester-api.mjs`.
+Tests : `npm test` (règles et traitement des demandes) ; campagnes complètes sur le site en ligne : `ADMIN_CLE=… node scripts/tester-api.mjs` (API) et `ADMIN_CLE=… node scripts/tester-app.mjs` (pages dans un vrai navigateur, Playwright requis). Les deux effacent leurs données de test, même en cas d'arrêt.
 
 ## Espace admin (vitrine)
 

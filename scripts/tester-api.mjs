@@ -21,8 +21,12 @@ function verifier(nom, condition, detail = "") {
 }
 const pasDeFuite = (r) => !/errorType|stack|trace|at .*\.mjs/i.test(r.texte);
 
+// Données de test, toujours effacées à la fin, même si un test s'arrête en route.
+const ref = crypto.randomUUID(), visiteur = crypto.randomUUID();
+let r;
+try {
 console.log("\n# Description et règles");
-let r = await appel("GET", "/api");
+r = await appel("GET", "/api");
 verifier("GET /api décrit le service", r.statut === 200 && r.json?.service === "API Douane Afrique" && r.json.adresses.length >= 8);
 r = await appel("POST", "/api"); verifier("POST /api → 405", r.statut === 405 && r.json?.erreur);
 r = await appel("GET", "/api/inexistante"); verifier("adresse inconnue → 404 JSON", r.statut === 404 && r.json?.erreur);
@@ -56,7 +60,6 @@ for (const [nom, brut] of [["corps null", "null"], ["corps tableau", "[1,2]"], [
 r = await appel("DELETE", "/api/estimation"); verifier("DELETE /api/estimation → 405", r.statut === 405);
 
 console.log("\n# Réception des demandes");
-const ref = crypto.randomUUID();
 const piege = '<img src=x onerror="alert(1)">';
 const demande = { ref, nom: "Test API " + piege, whatsapp: "+242 06 000 0000", email: "", pays_destination: "CI", pays_achat: "France", lien_annonce: "javascript:alert(1)", vehicule: "Peugeot 3008 " + piege, annee: "2017", type: "suv", prix: "9 500 €", message: "Test automatique, à supprimer.", consentement: "oui", "bot-field": "" };
 r = await appel("POST", "/api/verification", { corps: demande }); verifier("demande valide → 201", r.statut === 201 && r.json?.ref === ref, r.texte);
@@ -97,7 +100,6 @@ r = await appel("DELETE", `/api/demandes/${ref}`, { cle: CLE }); verifier("DELET
 r = await appel("DELETE", `/api/demandes/${ref}`, { cle: CLE }); verifier("DELETE une 2e fois → 404", r.statut === 404);
 
 console.log("\n# Visiteurs en direct");
-const visiteur = crypto.randomUUID();
 r = await appel("POST", "/api/presence", { corps: { id: visiteur, page: "/vitrine/", source: "TikTok", appareil: "téléphone", debut: Date.now() - 90000 } });
 verifier("signal de visite → 204", r.statut === 204, r.texte);
 for (const [nom, corps] of [["identifiant invalide", { id: "x" }], ["corps null", null], ["sans identifiant", { page: "/" }]]) {
@@ -126,8 +128,15 @@ r = await appel("GET", "/api/presence", { cle: CLE }); verifier("la visite de te
 r = await appel("PUT", "/api/presence", { cle: CLE }); verifier("PUT /api/presence → 405", r.statut === 405);
 
 console.log("\n# Fichiers privés");
-for (const c of ["/netlify/functions/api-demandes.mjs", "/tests/regles.test.js", "/package.json", "/node_modules/@netlify/blobs/package.json"]) {
+for (const c of ["/netlify/functions/api-demandes.mjs", "/tests/regles.test.js", "/scripts/tester-api.mjs", "/package.json", "/node_modules/@netlify/blobs/package.json"]) {
   r = await appel("GET", c); verifier(`${c} non publié`, r.statut === 404 || (c === "/package.json" && r.statut === 200));
+}
+
+} catch (e) {
+  ko++; echecs.push("arrêt imprévu : " + e.message); console.log("  ✗ arrêt imprévu : " + e.message);
+} finally {
+  await fetch(`${BASE}/api/demandes/${ref}`, { method: "DELETE", headers: { Authorization: "Bearer " + CLE } }).catch(() => {});
+  await fetch(`${BASE}/api/presence?id=${visiteur}`, { method: "DELETE", headers: { Authorization: "Bearer " + CLE } }).catch(() => {});
 }
 
 console.log(`\n${ok} réussis, ${ko} échoués`);

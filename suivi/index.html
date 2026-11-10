@@ -97,7 +97,7 @@ var cle = lireCle();
 function api(chemin, options) {
   options = options || {};
   options.headers = Object.assign({ Authorization: "Bearer " + cle }, options.headers || {});
-  return fetch(chemin, options).then(function (r) {
+  return fetch(chemin, options).catch(function () { throw new Error("Connexion impossible. Vérifiez votre accès à Internet, puis réessayez."); }).then(function (r) {
     if (r.status === 401) throw new Error("Clé d'accès incorrecte.");
     if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) { throw new Error(j.erreur || ("Erreur " + r.status)); });
     return r;
