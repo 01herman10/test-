@@ -2,6 +2,9 @@
 [build]
   publish = "."
   command = ""
+  # Chaque mise en ligne coûte des crédits Netlify (15 sur 300 par mois en offre gratuite).
+  # On ne remet pas le site en ligne quand seuls les tests, scripts, README ou réglages GitHub changent.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)scripts' ':(exclude)tests' ':(exclude)README.md' ':(exclude).github'"
 
 # L'ancienne adresse de la vitrine renvoie vers la nouvelle.
 [[redirects]]
