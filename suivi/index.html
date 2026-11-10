@@ -114,7 +114,7 @@ function carte(d) {
   c.appendChild(ligne);
 
   var infos = el("div", "infos");
-  [["Client", d.client.nom], ["WhatsApp", d.client.whatsapp], ["E-mail", d.client.email || "—"], ["Destination", d.paysDestination], ["Véhicule en", d.vehicule.paysAchat], ["Prix annoncé", d.vehicule.prixTexte || "—"],
+  [["Client", d.client.nom], ["WhatsApp", d.client.whatsapp], ["E-mail", d.client.email || "—"], ["Destination", d.paysNom || d.paysDestination], ["Véhicule en", d.vehicule.paysAchat], ["Prix annoncé", d.vehicule.prixTexte || "—"],
    ["Taxes estimées", d.estimation && d.estimation.prixLu ? fcfa(d.estimation.total) : "—"]].forEach(function (x) {
     var dv = el("div"); dv.appendChild(el("span", null, x[0])); dv.appendChild(document.createTextNode(x[1] || "—")); infos.appendChild(dv);
   });

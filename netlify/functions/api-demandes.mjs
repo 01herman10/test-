@@ -8,6 +8,7 @@
 import { getStore } from "@netlify/blobs";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { STATUTS, messageWhatsApp, lienWhatsApp, rapportHTML } from "../../douane/demandes.js";
+import { PAYS } from "../../douane/regles.js";
 
 const magasin = () => getStore({ name: "demandes", consistency: "strong" });
 const empreinte = (s) => createHash("sha256").update(String(s)).digest();
@@ -25,7 +26,7 @@ async function trouver(id) {
   return fiche ? { cle: id.toLowerCase(), fiche } : null;
 }
 
-const enrichir = (f) => ({ ...f, statutLibelle: STATUTS[f.statut] || f.statut, messageWhatsApp: messageWhatsApp(f), lienWhatsApp: lienWhatsApp(f) });
+const enrichir = (f) => ({ ...f, paysNom: PAYS[f.paysDestination]?.nom || f.paysDestination, statutLibelle: STATUTS[f.statut] || f.statut, messageWhatsApp: messageWhatsApp(f), lienWhatsApp: lienWhatsApp(f) });
 
 export default async (req, context) => {
   if (!Netlify.env.get("ADMIN_CLE")) return Response.json({ erreur: "ADMIN_CLE n'est pas configurée sur Netlify." }, { status: 503 });
