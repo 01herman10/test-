@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Page introuvable</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+:root{--bg:#EDF1F0;--surface:#FFFFFF;--ink:#15232A;--muted:#566870;--line:#D2DBDA;--accent:#0D5A66;color-scheme:light}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1618;--surface:#162226;--ink:#E5ECEB;--muted:#93A5A9;--line:#2A3B40;--accent:#62B6C3;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:17px;line-height:1.55}
+.wrap{max-width:640px;margin:0 auto;padding-block:48px 88px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+h1{font-family:"Archivo","Arial Narrow",Arial,sans-serif;font-weight:800;font-size:clamp(28px,6vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+p{margin:0;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+a{color:var(--accent);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cette page n'existe pas ou a changé d'adresse.</h1>
+  <p>Le lien que vous avez suivi est peut-être ancien. Tout le site est accessible depuis ces pages :</p>
+  <div class="card">
+    <a href="/">Calculer mes frais de douane →</a>
+    <a href="/verification/">Faire vérifier mon véhicule →</a>
+    <a href="/vitrine/">Notre vitrine →</a>
+  </div>
+</div>
+</body>
+</html>

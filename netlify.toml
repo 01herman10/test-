@@ -9,6 +9,12 @@
   to = "/vitrine/"
   status = 301
 
+# Les anciens outils ont quitté ce site : leurs anciens liens ramènent au calculateur.
+[[redirects]]
+  from = "/outils/*"
+  to = "/"
+  status = 301
+
 # Les fichiers source de l'API et des tests ne sont pas des pages publiques.
 [[redirects]]
   from = "/netlify/*"
