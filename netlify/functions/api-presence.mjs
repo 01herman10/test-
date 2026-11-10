@@ -10,11 +10,14 @@ const ACTIF_MS = 75 * 1000;          // vu dans les 75 dernières secondes = sur
 const GARDE_MS = 24 * 3600 * 1000;   // on garde 24 h pour le total du jour
 const PAGES = { "/": "Calculateur", "/verification/": "Vérification", "/verification/merci/": "Demande envoyée", "/vitrine/": "Vitrine" };
 const SOURCES = ["TikTok", "WhatsApp", "Facebook", "Instagram", "YouTube", "Google", "Autre site", "Direct"];
+// Robots d'indexation et navigateurs automatiques : jamais comptés comme visiteurs.
+const ROBOT = /\b(bot|crawler|spider)\b|googlebot|bingbot|yandexbot|baiduspider|duckduckbot|applebot|petalbot|ahrefsbot|semrushbot|bytespider|slurp|headlesschrome|lighthouse|inspectiontool|facebookexternalhit/i;
 const nomsPays = new Intl.DisplayNames(["fr"], { type: "region" });
 const magasin = () => getStore({ name: "presence", consistency: "strong" });
 const texte = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 async function signal(req, context) {
+  if (ROBOT.test(req.headers.get("user-agent") || "")) return new Response(null, { status: 204 });
   let c;
   try { c = JSON.parse((await req.text()).slice(0, 2000)); } catch { return Response.json({ erreur: "Format invalide." }, { status: 400 }); }
   if (!c || typeof c !== "object" || !UUID.test(c.id || "")) return Response.json({ erreur: "Identifiant invalide." }, { status: 400 });

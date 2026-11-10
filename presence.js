@@ -1,7 +1,8 @@
 // Visiteurs en direct : signal anonyme toutes les 30 s tant que la page est ouverte et visible.
 // Pas de cookie : un identifiant aléatoire gardé seulement pour l'onglet (sessionStorage).
 (function () {
-  if (navigator.webdriver) return; // robots et tests automatiques : non comptés
+  // Robots (Google, Bing…), navigateurs automatiques et tests : non comptés.
+  if (navigator.webdriver || /\b(bot|crawler|spider)\b|googlebot|bingbot|yandexbot|baiduspider|duckduckbot|applebot|petalbot|ahrefsbot|semrushbot|bytespider|slurp|headlesschrome|lighthouse|inspectiontool|facebookexternalhit/i.test(navigator.userAgent || "")) return;
   var ss; try { ss = window.sessionStorage; } catch (e) { ss = null; }
   function lire(k) { try { return ss && ss.getItem(k); } catch (e) { return null; } }
   function ecrire(k, v) { try { ss && ss.setItem(k, v); } catch (e) {} }

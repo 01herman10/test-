@@ -22,7 +22,7 @@ function verifier(nom, condition, detail = "") {
 const pasDeFuite = (r) => !/errorType|stack|trace|at .*\.mjs/i.test(r.texte);
 
 // Données de test, toujours effacées à la fin, même si un test s'arrête en route.
-const ref = crypto.randomUUID(), visiteur = crypto.randomUUID();
+const ref = crypto.randomUUID(), visiteur = crypto.randomUUID(), robot = crypto.randomUUID(), cubotId = crypto.randomUUID();
 let r;
 try {
 console.log("\n# Description et règles");
@@ -125,6 +125,13 @@ r = await appel("DELETE", "/api/presence", { cle: CLE }); verifier("effacer sans
 r = await appel("DELETE", "/api/presence?id=x", { cle: CLE }); verifier("effacer un identifiant invalide → 400", r.statut === 400);
 r = await appel("DELETE", `/api/presence?id=${visiteur}`, { cle: CLE }); verifier("effacer la visite de test", r.statut === 200 && r.json?.efface === 1);
 r = await appel("GET", "/api/presence", { cle: CLE }); verifier("la visite de test n'est plus dans le total", r.json?.dernieres24h?.visites === total - 1 && r.json?.enDirect === avant - 1);
+const avantRobot = (await appel("GET", "/api/presence", { cle: CLE })).json?.dernieres24h?.visites;
+r = await appel("POST", "/api/presence", { corps: { id: robot, page: "/", source: "Direct" }, entetes: { "User-Agent": "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" } });
+const apresRobot = (await appel("GET", "/api/presence", { cle: CLE })).json?.dernieres24h?.visites;
+verifier("robot de Google : pas compté comme visiteur", r.statut === 204 && apresRobot === avantRobot, `avant ${avantRobot}, après ${apresRobot}`);
+r = await appel("POST", "/api/presence", { corps: { id: cubotId, page: "/", source: "Direct" }, entetes: { "User-Agent": "Mozilla/5.0 (Linux; Android 12; CUBOT X50) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36" } });
+const cubot = (await appel("GET", "/api/presence", { cle: CLE })).json?.dernieres24h?.visites;
+verifier("téléphone Cubot (nom proche de « bot ») : bien compté", cubot === apresRobot + 1, `avant ${apresRobot}, après ${cubot}`);
 r = await appel("PUT", "/api/presence", { cle: CLE }); verifier("PUT /api/presence → 405", r.statut === 405);
 
 console.log("\n# Fichiers privés");
@@ -136,7 +143,7 @@ for (const c of ["/netlify/functions/api-demandes.mjs", "/tests/regles.test.js",
   ko++; echecs.push("arrêt imprévu : " + e.message); console.log("  ✗ arrêt imprévu : " + e.message);
 } finally {
   await fetch(`${BASE}/api/demandes/${ref}`, { method: "DELETE", headers: { Authorization: "Bearer " + CLE } }).catch(() => {});
-  await fetch(`${BASE}/api/presence?id=${visiteur}`, { method: "DELETE", headers: { Authorization: "Bearer " + CLE } }).catch(() => {});
+  for (const id of [visiteur, robot, cubotId]) await fetch(`${BASE}/api/presence?id=${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + CLE } }).catch(() => {});
 }
 
 console.log(`\n${ok} réussis, ${ko} échoués`);
