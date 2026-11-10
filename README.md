@@ -5,12 +5,17 @@ Site statique publié sur Netlify (douane-afrique.netlify.app) : estimation des 
 | Page | Adresse | Ce qu'elle fait |
 |---|---|---|
 | Calculateur de douane | `/` | Droits et taxes d'un véhicule : Bénin, Burkina Faso, Côte d'Ivoire, Guinée-Bissau, Mali, Niger, Sénégal, Togo |
+| Vérification avant achat | `/verification/` | Formulaire « Faire vérifier mon véhicule » (Netlify Forms) ; page de remerciement `/verification/merci/` |
 | Vitrine | `/vitrine/` | Bandeau « Avant d'importer, pesez le vrai prix. » et galerie de photos |
 | Espace admin | `/admin/` | Modifier l'accroche et les photos de la vitrine, sans toucher au code |
 
 Les taux, les limites d'âge et les prélèvements sont indicatifs et doivent être vérifiés auprès des douanes ou d'un transitaire agréé. Les points à confirmer sont signalés dans le calculateur.
 
 Les outils de création (vidéo IA, documents, tableur…) sont dans un projet séparé : le dépôt `boite-a-outils`.
+
+## Demandes de vérification
+
+Les demandes envoyées par le formulaire `/verification/` sont recueillies par Netlify Forms : **Netlify → projet douane-afrique → Forms → verification**. Pour être prévenu à chaque demande : **Forms → Form notifications → Add notification → Email notification**.
 
 ## Espace admin (vitrine)
 

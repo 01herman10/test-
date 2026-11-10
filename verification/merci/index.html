@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Demande envoyée</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@800&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+:root{--bg:#EDF1F0;--surface:#FFFFFF;--ink:#15232A;--muted:#566870;--line:#D2DBDA;--accent:#0D5A66;--ok:#1E7448;--ok-bg:#E5F3EB;color-scheme:light}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1618;--surface:#162226;--ink:#E5ECEB;--muted:#93A5A9;--line:#2A3B40;--accent:#62B6C3;--ok:#62C792;--ok-bg:#16301F;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:17px;line-height:1.55}
+.wrap{max-width:640px;margin:0 auto;padding-block:48px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+.ok{align-self:flex-start;background:var(--ok-bg);color:var(--ok);font-weight:600;border-radius:999px;padding:6px 14px;font-size:14px}
+h1{font-family:"Archivo","Arial Narrow",Arial,sans-serif;font-weight:800;font-size:clamp(28px,6vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+p{margin:0;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.card p{color:var(--ink)}
+a{color:var(--accent);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="ok">✓ Demande envoyée</span>
+  <h1>Merci, nous avons bien reçu votre demande.</h1>
+  <p>Nous vous recontactons sous 48 h sur WhatsApp avec le tarif de la vérification. Rien n'est à payer avant.</p>
+  <div class="card"><p>En attendant, vous pouvez déjà estimer les droits et taxes de votre véhicule avec le calculateur.</p></div>
+  <p><a href="/">Calculer mes frais de douane →</a></p>
+</div>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Faire vérifier mon véhicule</title>
+<meta name="description" content="Avant d'acheter une voiture en Europe pour l'Afrique de l'Ouest, faites vérifier qu'elle pourra entrer dans le pays et ce qu'elle vous coûtera vraiment à l'arrivée.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Page de service : promesse à gauche / formulaire à droite sur ordinateur, une colonne sur téléphone */
+:root{
+  --bg:#EDF1F0; --surface:#FFFFFF; --ink:#15232A; --muted:#566870; --line:#D2DBDA;
+  --accent:#0D5A66; --accent-ink:#FFFFFF; --mark:#F2C230; --mark-ink:#15232A;
+  --danger:#B3261E; --ok:#1E7448; --ok-bg:#E5F3EB;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0E1618; --surface:#162226; --ink:#E5ECEB; --muted:#93A5A9; --line:#2A3B40;
+  --accent:#62B6C3; --accent-ink:#0E1618; --mark:#E8B829; --mark-ink:#15232A;
+  --danger:#F28A80; --ok:#62C792; --ok-bg:#16301F; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1060px;margin:0 auto;padding-block:24px 56px;
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:24px}
+nav.top{display:flex;gap:8px 16px;flex-wrap:wrap;font-size:14px}
+nav.top a{color:var(--accent);font-weight:600;text-decoration:none}
+nav.top a:hover{text-decoration:underline}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,6.5vw,48px);line-height:1.05;margin:6px 0 10px;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:20px;margin:0}
+.lead{margin:0;color:var(--muted);font-size:18px;max-width:58ch}
+.grid{display:grid;grid-template-columns:1fr;gap:20px;align-items:start}
+@media (min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+ol.points{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+ol.points li{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
+ol.points .n{font-family:var(--f-mono);font-size:13px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--mark);color:var(--mark-ink);font-weight:500}
+ol.points b{display:block}
+ol.points span.t{color:var(--muted);font-size:15px}
+.etapes{display:grid;grid-template-columns:1fr;gap:10px}
+@media (min-width:600px){.etapes{grid-template-columns:repeat(3,1fr)}}
+.etape{border:1px solid var(--line);border-radius:10px;padding:14px;font-size:15px}
+.etape b{display:block;font-family:var(--f-display);font-size:16px;color:var(--accent);margin-bottom:4px}
+.tarif{background:var(--ok-bg);color:var(--ok);border-radius:10px;padding:12px 14px;font-size:15px;margin:0}
+form{display:flex;flex-direction:column;gap:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:460px){.row{grid-template-columns:1fr}}
+label{font-weight:500;font-size:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+label small{font-weight:400;color:var(--muted)}
+input,select,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+textarea{min-height:90px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label.case{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400;font-size:14px;color:var(--muted)}
+label.case input{width:auto;margin-top:3px}
+button{font:inherit;font-weight:600;font-size:17px;border:0;border-radius:10px;padding:14px 18px;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.fine{font-size:13px;color:var(--muted);margin:0;max-width:75ch}
+.cache{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top"><a href="../">← Calculateur de douane</a><a href="../vitrine/">Notre vitrine</a></nav>
+
+  <header>
+    <div class="eyebrow">Vérification avant achat · Zone UEMOA</div>
+    <h1>Avant d'acheter, faites vérifier votre véhicule.</h1>
+    <p class="lead">Vous achetez une voiture en Europe pour l'Afrique de l'Ouest ? Nous vérifions qu'elle pourra entrer dans le pays et ce qu'elle vous coûtera vraiment à l'arrivée, avant que vous payiez.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="t-verif">
+      <h2 id="t-verif">Ce que nous vérifions</h2>
+      <ol class="points">
+        <li><span class="n">01</span><div><b>La limite d'âge du pays</b><span class="t">Un véhicule trop ancien peut être refusé au port. Nous vérifions la règle du pays de destination pour votre type de véhicule.</span></div></li>
+        <li><span class="n">02</span><div><b>Le coût total à l'arrivée</b><span class="t">Droits de douane, TVA, prélèvements communautaires, fret et assurance : le vrai prix, pas seulement celui de l'annonce.</span></div></li>
+        <li><span class="n">03</span><div><b>Les papiers</b><span class="t">Carte grise, facture, certificat de cession, connaissement : ce qu'il faut réunir, et ce qui doit vous alerter.</span></div></li>
+        <li><span class="n">04</span><div><b>Les signaux d'alerte de l'annonce</b><span class="t">Prix trop bas, kilométrage incohérent, vendeur pressé : les pièges les plus courants.</span></div></li>
+      </ol>
+      <h2>Comment ça marche</h2>
+      <div class="etapes">
+        <div class="etape"><b>1. Vous envoyez l'annonce</b>Le lien et quelques informations, avec le formulaire.</div>
+        <div class="etape"><b>2. Nous vous recontactons</b>Sous 48 h, sur WhatsApp, avec le tarif de la vérification.</div>
+        <div class="etape"><b>3. Vous recevez le rapport</b>Un PDF clair : entrée possible ou non, coût total, papiers à demander.</div>
+      </div>
+      <p class="tarif">Service en lancement : envoyer une demande est gratuit et sans engagement. Le tarif vous est annoncé avant toute prestation.</p>
+    </section>
+
+    <section class="card" aria-labelledby="t-form">
+      <h2 id="t-form">Demander une vérification</h2>
+      <form name="verification" method="POST" action="/verification/merci/" data-netlify="true" netlify-honeypot="bot-field">
+        <input type="hidden" name="subject" value="Nouvelle demande de vérification (%{submissionId})">
+        <p class="cache"><label>Ne pas remplir : <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+        <label>Votre nom<input type="text" name="nom" id="nom" autocomplete="name" required></label>
+        <div class="row">
+          <label>WhatsApp <small>avec l'indicatif, ex. +242 06 123 4567</small><input type="tel" name="whatsapp" id="whatsapp" autocomplete="tel" required></label>
+          <label>E-mail <small>facultatif</small><input type="email" name="email" id="email" autocomplete="email"></label>
+        </div>
+        <div class="row">
+          <label>Pays de destination
+            <select name="pays_destination" id="pays_destination" required>
+              <option value="">Choisir…</option>
+              <option value="BJ">Bénin</option><option value="BF">Burkina Faso</option><option value="CI">Côte d'Ivoire</option>
+              <option value="GW">Guinée-Bissau</option><option value="ML">Mali</option><option value="NE">Niger</option>
+              <option value="SN">Sénégal</option><option value="TG">Togo</option><option value="autre">Autre pays</option>
+            </select>
+          </label>
+          <label>Le véhicule se trouve en
+            <select name="pays_achat" id="pays_achat" required>
+              <option value="">Choisir…</option>
+              <option>France</option><option>Belgique</option><option>Allemagne</option><option>Pays-Bas</option>
+              <option>Italie</option><option>Espagne</option><option>Canada</option><option>États-Unis</option><option>Autre</option>
+            </select>
+          </label>
+        </div>
+        <label>Lien de l'annonce <small>Leboncoin, La Centrale, AutoScout24, Mobile.de…</small><input type="url" name="lien_annonce" id="lien_annonce" placeholder="https://"></label>
+        <div class="row">
+          <label>Marque et modèle<input type="text" name="vehicule" id="vehicule" placeholder="ex. Toyota Corolla" required></label>
+          <label>Année de fabrication<input type="number" name="annee" id="annee" inputmode="numeric" min="1980" max="2030" required></label>
+        </div>
+        <div class="row">
+          <label>Type de véhicule
+            <select name="type" id="type">
+              <option value="voiture">Voiture particulière</option><option value="suv">SUV / 4x4</option><option value="pickup">Pick-up</option>
+              <option value="taxi">Taxi</option><option value="moto">Moto</option><option value="bus">Bus / minibus</option>
+              <option value="camion">Camion</option><option value="autre">Autre</option>
+            </select>
+          </label>
+          <label>Prix demandé <small>en euros ou en FCFA</small><input type="text" name="prix" id="prix" inputmode="decimal" placeholder="ex. 5 000 €"></label>
+        </div>
+        <label>Votre question <small>facultatif</small><textarea name="message" id="message" placeholder="Ce qui vous inquiète, vos délais, etc."></textarea></label>
+        <label class="case"><input type="checkbox" name="consentement" value="oui" required>J'accepte d'être recontacté sur WhatsApp au sujet de cette demande. Mes informations ne servent qu'à cela.</label>
+        <button type="submit">Envoyer ma demande</button>
+      </form>
+    </section>
+  </div>
+
+  <p class="fine">Les vérifications s'appuient sur le tarif commun de l'UEMOA et sur les règles connues de chaque pays ; les taux et limites d'âge sont confirmés auprès des douanes ou d'un transitaire agréé pour chaque rapport. Nous ne vendons pas de véhicules et ne demandons jamais de paiement avant d'avoir annoncé le tarif.</p>
+</div>
+<script>
+// Préremplit le formulaire quand on arrive depuis le calculateur (?pays=CI&annee=2018&type=voiture&prix=5000&devise=EUR)
+(function(){
+  var q = new URLSearchParams(location.search);
+  function mettre(id, v){ var el = document.getElementById(id); if (!el || !v) return;
+    if (el.tagName === "SELECT" && !Array.prototype.some.call(el.options, function(o){ return o.value === v; })) return;
+    el.value = v; }
+  mettre("pays_destination", q.get("pays"));
+  mettre("annee", q.get("annee"));
+  mettre("type", q.get("type"));
+  if (q.get("prix")) mettre("prix", q.get("prix") + (q.get("devise") === "XOF" ? " FCFA" : " €"));
+})();
+</script>
+</body>
+</html>

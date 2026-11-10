@@ -90,7 +90,10 @@ li.cif .amt{color:var(--muted)}
 .docs li{border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-width:0}
 .docs li b{display:block;font-weight:600}
 .docs li span{font-size:13px;color:var(--muted)}
-nav.outils{display:flex;justify-content:flex-end}
+nav.outils{display:flex;justify-content:flex-end;gap:8px 18px;flex-wrap:wrap}
+.cta-verif{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--accent);border-radius:10px;padding:12px 14px;color:var(--accent);text-decoration:none;font-weight:600;font-size:15px}
+.cta-verif:hover{background:var(--bg)}
+.cta-verif small{display:block;font-weight:400;color:var(--muted);font-size:13px}
 nav.outils a{color:var(--accent);font-weight:600;text-decoration:none;font-size:14px}
 nav.outils a:hover{text-decoration:underline}
 .fine{font-size:13px;color:var(--muted);margin:0;max-width:75ch}
@@ -98,7 +101,7 @@ nav.outils a:hover{text-decoration:underline}
 </style>
 
 <div class="wrap">
-  <nav class="outils"><a href="vitrine/">Notre vitrine →</a></nav>
+  <nav class="outils"><a href="verification/">Faire vérifier mon véhicule</a><a href="vitrine/">Notre vitrine →</a></nav>
   <header>
     <div class="eyebrow">Zone UEMOA · 8 pays</div>
     <h1>Combien vais-je payer à la douane&nbsp;?</h1>
@@ -174,6 +177,7 @@ nav.outils a:hover{text-decoration:underline}
         <div class="total" aria-live="polite" aria-atomic="true"><span>Total droits et taxes</span><span class="big" id="total"></span></div>
         <div class="sub"><span>Soit <b id="pct"></b> de la valeur CIF</span><span><span id="l-grand">Coût total au port</span> : <b id="grand"></b></span></div>
       </div>
+      <a class="cta-verif" id="cta-verif" href="verification/"><span>Vous achetez ce véhicule en Europe ?<small>Faites vérifier l'annonce avant de payer : âge, coût total, papiers.</small></span><span>Faire vérifier →</span></a>
     </section>
   </div>
 
@@ -286,6 +290,7 @@ nav.outils a:hover{text-decoration:underline}
 
     Array.prototype.forEach.call(document.querySelectorAll(".cur"), function(el){ el.textContent = devise==="EUR" ? "(€)" : "(FCFA)"; });
     $("t-port").textContent = p.port;
+    $("cta-verif").href = "verification/?pays=" + encodeURIComponent(selP.value) + "&type=" + encodeURIComponent(t.id) + (annee ? "&annee=" + annee : "") + ($("prix").value.trim() ? "&prix=" + encodeURIComponent($("prix").value.trim()) + "&devise=" + devise : "");
     $("l-grand").textContent = p.enclave ? "Coût total à l'arrivée" : "Coût total au port";
     $("transit").hidden = !p.enclave;
     $("transit").textContent = p.enclave ? "Pays sans accès à la mer : le véhicule débarque dans un port voisin (Abidjan, Lomé, Cotonou, Dakar, Tema…) puis rejoint "+p.port.replace("Bureau de douane de ","")+" par la route. Les frais de transit et de transport routier ne sont pas inclus." : "";
