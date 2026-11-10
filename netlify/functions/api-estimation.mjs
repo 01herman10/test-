@@ -21,16 +21,22 @@ export default async (req) => {
   } catch {
     return Response.json({ erreur: "Corps JSON invalide." }, { status: 400, headers: CORS });
   }
+  if (!p || typeof p !== "object" || Array.isArray(p)) {
+    return Response.json({ erreur: "Envoyer un objet JSON, par exemple { \"pays\": \"CI\", \"prix\": 5000 }." }, { status: 400, headers: CORS });
+  }
+  if (p.annee !== undefined && p.annee !== null && p.annee !== "" && !/^\d{4}$/.test(String(p.annee).trim())) {
+    return Response.json({ erreur: `Année invalide : ${p.annee}. Utiliser 4 chiffres, par exemple 2021.` }, { status: 400, headers: CORS });
+  }
   try {
     const est = estimer({
       pays: String(p.pays || "").toUpperCase(),
-      type: String(p.type || "voiture"),
+      type: String(p.type || "voiture").toLowerCase(),
       etat: p.etat === "neuf" ? "neuf" : "occasion",
-      annee: p.annee,
       prix: nombre(p.prix, "prix"),
       fret: nombre(p.fret, "fret"),
       assurance: nombre(p.assurance, "assurance"),
       devise: String(p.devise || "EUR").toUpperCase(),
+      annee: p.annee === undefined || p.annee === "" ? null : parseInt(p.annee, 10),
     });
     return Response.json({ ...est, phraseAge: phraseAge(est) }, { headers: CORS });
   } catch (e) {

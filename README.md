@@ -23,6 +23,7 @@ Fonctions Netlify dans `netlify/functions/`. Les règles douanières (taux, limi
 
 | Adresse | Accès | Ce qu'elle fait |
 |---|---|---|
+| `GET /api` | Public | Description du back-end : toutes les adresses, paramètres et exemples |
 | `GET /api/regles` | Public | Les 8 pays, les types de véhicules et les taux |
 | `GET` ou `POST /api/estimation` | Public | Droits, taxes et limite d'âge. Paramètres : `pays`, `type`, `etat` (`occasion` ou `neuf`), `annee`, `prix`, `fret`, `assurance`, `devise` (`EUR` ou `XOF`) |
 | `POST /api/verification` | Public (utilisé par la page) | Reçoit directement chaque demande et la range, même si le filtre anti-spam de Netlify la classe à tort ; piège anti-robots |
@@ -36,7 +37,7 @@ Les adresses privées demandent l'en-tête `Authorization: Bearer <clé>`, la cl
 
 Exemple : `https://douane-afrique.netlify.app/api/estimation?pays=CI&type=voiture&annee=2021&prix=5000&fret=400&assurance=100&devise=EUR`
 
-Tests : `npm test`.
+Tests : `npm test` (règles et traitement des demandes) ; campagne complète sur le site en ligne : `ADMIN_CLE=… node scripts/tester-api.mjs`.
 
 ## Espace admin (vitrine)
 

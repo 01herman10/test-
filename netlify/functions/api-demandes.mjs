@@ -33,6 +33,9 @@ export default async (req, context) => {
   if (!autorise(req)) return Response.json({ erreur: "Clé d'accès manquante ou incorrecte." }, { status: 401 });
 
   const { id, action } = context.params;
+  if (req.method === "POST" || req.method === "PUT") return Response.json({ erreur: "Méthode non autorisée." }, { status: 405, headers: { Allow: "GET, PATCH, DELETE" } });
+  if (action && action !== "rapport") return Response.json({ erreur: "Action inconnue : " + action + "." }, { status: 404 });
+  if (!id && req.method !== "GET") return Response.json({ erreur: "Méthode non autorisée sur la liste." }, { status: 405, headers: { Allow: "GET" } });
   try {
     if (!id) {
       const { blobs } = await magasin().list();
@@ -67,4 +70,4 @@ export default async (req, context) => {
   }
 };
 
-export const config = { path: ["/api/demandes", "/api/demandes/:id", "/api/demandes/:id/:action"], method: ["GET", "PATCH", "DELETE"] };
+export const config = { path: ["/api/demandes", "/api/demandes/:id", "/api/demandes/:id/:action"], method: ["GET", "POST", "PUT", "PATCH", "DELETE"] };

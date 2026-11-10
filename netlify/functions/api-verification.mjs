@@ -8,6 +8,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CHAMPS = ["ref", "bot-field", "nom", "whatsapp", "email", "pays_destination", "pays_achat", "lien_annonce", "vehicule", "annee", "type", "prix", "message", "consentement"];
 
 export default async (req) => {
+  if (req.method !== "POST") return Response.json({ erreur: "Méthode non autorisée. Utiliser POST." }, { status: 405, headers: { Allow: "POST" } });
   const brut = await req.text();
   if (brut.length > 20000) return Response.json({ erreur: "Demande trop longue." }, { status: 413 });
   let recu;
@@ -16,6 +17,7 @@ export default async (req) => {
   } catch {
     return Response.json({ erreur: "Format invalide." }, { status: 400 });
   }
+  if (!recu || typeof recu !== "object" || Array.isArray(recu)) return Response.json({ erreur: "Format invalide." }, { status: 400 });
   const data = Object.fromEntries(CHAMPS.map((c) => [c, typeof recu[c] === "string" ? recu[c] : ""]));
   // Piège anti-robots : un humain ne remplit jamais ce champ caché.
   if (data["bot-field"]) return new Response(null, { status: 204 });
@@ -29,4 +31,4 @@ export default async (req) => {
   return Response.json({ enregistre: true, deja: !modified, ref: fiche.id }, { status: modified ? 201 : 200 });
 };
 
-export const config = { path: "/api/verification", method: ["POST"] };
+export const config = { path: "/api/verification", method: ["GET", "POST", "PUT", "PATCH", "DELETE"] };
