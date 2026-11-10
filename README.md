@@ -17,6 +17,26 @@ Les outils de création (vidéo IA, documents, tableur…) sont dans un projet s
 
 Les demandes envoyées par le formulaire `/verification/` sont recueillies par Netlify Forms : **Netlify → projet douane-afrique → Forms → verification**. Pour être prévenu à chaque demande : **Forms → Form notifications → Add notification → Email notification**.
 
+## API
+
+Fonctions Netlify dans `netlify/functions/`. Les règles douanières (taux, limites d'âge, papiers) sont dans un seul fichier, `douane/regles.js`, utilisé à la fois par le calculateur et par l'API : un changement de taux s'applique partout.
+
+| Adresse | Accès | Ce qu'elle fait |
+|---|---|---|
+| `GET /api/regles` | Public | Les 8 pays, les types de véhicules et les taux |
+| `GET` ou `POST /api/estimation` | Public | Droits, taxes et limite d'âge. Paramètres : `pays`, `type`, `etat` (`occasion` ou `neuf`), `annee`, `prix`, `fret`, `assurance`, `devise` (`EUR` ou `XOF`) |
+| Formulaire `verification` | Automatique | À chaque demande validée, `demande-recue` calcule l'estimation et range la fiche (stockage Netlify Blobs « demandes ») |
+| `GET /api/demandes` | Privé | Liste des demandes, avec le message et le lien WhatsApp prêts |
+| `GET /api/demandes/:id/rapport` | Privé | Rapport de vérification à imprimer en PDF |
+| `PATCH /api/demandes/:id` | Privé | Changer le statut (`nouvelle`, `contactee`, `payee`, `rapport_envoye`, `abandonnee`) ou les notes |
+| `DELETE /api/demandes/:id` | Privé | Supprimer une demande (test, spam) |
+
+Les adresses privées demandent l'en-tête `Authorization: Bearer <clé>`, la clé étant la variable d'environnement Netlify `ADMIN_CLE`. La page **`/suivi/`** les utilise : c'est l'espace de suivi des demandes.
+
+Exemple : `https://douane-afrique.netlify.app/api/estimation?pays=CI&type=voiture&annee=2021&prix=5000&fret=400&assurance=100&devise=EUR`
+
+Tests : `npm test`.
+
 ## Espace admin (vitrine)
 
 L'espace admin enregistre les photos dans le dossier `photos/` et l'accroche, le texte et la liste des photos dans `photos/photos.json`, directement dans ce dépôt GitHub. Netlify republie alors le site tout seul.

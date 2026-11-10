@@ -189,33 +189,9 @@ nav.outils a:hover{text-decoration:underline}
   <p class="fine">Estimation indicative, basée sur le tarif commun UEMOA. Chaque ligne est arrondie au franc, comme sur un bulletin de liquidation. Le montant réel peut varier selon la cylindrée, l'âge, les taxes nationales et la valeur retenue par la douane. Non inclus : honoraires du transitaire, frais de port et de parking, immatriculation, assurance locale. Vérifiez toujours auprès des douanes ou d'un transitaire agréé.</p>
 </div>
 
-<script>
+<script type="module">
+import { EUR, PAYS, TYPES, estimer, phraseAge } from "./douane/regles.js";
 (function(){
-  var EUR = 655.957;
-  var PAYS = {
-    // en : préposition devant le nom du pays. enclave : pays sans accès à la mer (arrivée par un port voisin puis par la route).
-    // aes : Burkina Faso, Mali et Niger ont quitté la CEDEAO ; le prélèvement de 0,5 % y est à confirmer.
-    // vp / lourd : limite d'âge connue (en années) ; null = non renseignée dans ce calculateur.
-    BJ:{nom:"Bénin", en:"au Bénin", port:"Port de Cotonou", tva:18, vp:10, lourd:null, note:" (limite à confirmer auprès des douanes béninoises)"},
-    BF:{nom:"Burkina Faso", en:"au Burkina Faso", port:"Bureau de douane de Ouagadougou", enclave:true, aes:true, tva:18, vp:null, lourd:null, note:""},
-    CI:{nom:"Côte d'Ivoire", en:"en Côte d'Ivoire", port:"Port d'Abidjan", tva:18, vp:5, lourd:null, note:""},
-    GW:{nom:"Guinée-Bissau", en:"en Guinée-Bissau", port:"Port de Bissau", tva:18, tvaNote:" (taux à confirmer)", vp:null, lourd:null, note:""},
-    ML:{nom:"Mali", en:"au Mali", port:"Bureau de douane de Bamako", enclave:true, aes:true, tva:18, vp:null, lourd:null, note:""},
-    NE:{nom:"Niger", en:"au Niger", port:"Bureau de douane de Niamey", enclave:true, aes:true, tva:19, vp:null, lourd:null, note:""},
-    SN:{nom:"Sénégal", en:"au Sénégal", port:"Port de Dakar", tva:18, vp:10, lourd:15, note:""},
-    TG:{nom:"Togo", en:"au Togo", port:"Port de Lomé", tva:18, vp:8, lourd:null, note:""}
-  };
-  var TYPES = [
-    {id:"voiture", nom:"Voiture particulière", dd:20, cat:"vp"},
-    {id:"suv", nom:"SUV / 4x4", dd:20, cat:"vp"},
-    {id:"taxi", nom:"Taxi", dd:20, cat:"vp"},
-    {id:"moto", nom:"Moto", dd:20, cat:"deux"},
-    {id:"tricycle", nom:"Tricycle", dd:20, cat:"deux"},
-    {id:"pickup", nom:"Pick-up", dd:10, cat:"util"},
-    {id:"bus", nom:"Bus / minibus", dd:10, cat:"lourd"},
-    {id:"camion", nom:"Camion", dd:10, cat:"lourd"},
-    {id:"tracteur", nom:"Tracteur agricole", dd:5, cat:"agri"}
-  ];
   var MONTANTS = ["prix","fret","assur"];
   var $ = function(id){ return document.getElementById(id); };
 
@@ -286,7 +262,6 @@ nav.outils a:hover{text-decoration:underline}
     var devise = radio("devise");
     var etat = radio("etat");
     var annee = parseInt($("annee").value,10);
-    var taux = devise==="EUR" ? EUR : 1;
 
     Array.prototype.forEach.call(document.querySelectorAll(".cur"), function(el){ el.textContent = devise==="EUR" ? "(€)" : "(FCFA)"; });
     $("t-port").textContent = p.port;
@@ -296,33 +271,15 @@ nav.outils a:hover{text-decoration:underline}
     $("transit").textContent = p.enclave ? "Pays sans accès à la mer : le véhicule débarque dans un port voisin (Abidjan, Lomé, Cotonou, Dakar, Tema…) puis rejoint "+p.port.replace("Bureau de douane de ","")+" par la route. Les frais de transit et de transport routier ne sont pas inclus." : "";
 
     // Chaque ligne est arrondie au franc avant d'être additionnée : le total est la somme exacte des lignes affichées.
-    var R = Math.round;
-    var cif = R((montant("prix")+montant("fret")+montant("assur")) * taux);
-    var dd = R(cif*t.dd/100), rs = R(cif*0.01), pcs = R(cif*0.01), pc = R(cif*0.005);
-    var tva = R((cif+dd+rs+pcs+pc)*p.tva/100);
-    var total = dd+rs+pcs+pc+tva;
+    var est = estimer({ pays: selP.value, type: t.id, etat: etat, annee: annee, prix: montant("prix"), fret: montant("fret"), assurance: montant("assur"), devise: devise, anneeReference: anneeMax });
+    var cif = est.cif, dd = est.lignes.dd, rs = est.lignes.rs, pcs = est.lignes.pcs, pc = est.lignes.pc, tva = est.lignes.tva, total = est.total;
 
     // Vérification de l'âge
-    var al = $("alerte"), refuse=false;
-    var limite = t.cat==="vp" ? p.vp : (t.cat==="lourd" ? p.lourd : null);
-    if(etat==="neuf"){
-      al.className="alert ok"; al.textContent="Véhicule neuf : pas de limite d'âge à vérifier.";
-    } else if(!annee || annee<1980 || annee>anneeMax){
-      al.className="alert info"; al.textContent="Entrez l'année de fabrication pour vérifier si le véhicule a le droit d'entrer.";
-    } else if(limite){
-      var age = anneeMax-annee;
-      if(age>limite){
-        refuse=true; al.className="alert bad";
-        al.textContent="Attention : ce véhicule a "+age+" ans. "+p.en.charAt(0).toUpperCase()+p.en.slice(1)+", la limite est de "+limite+" ans pour ce type de véhicule d'occasion"+p.note+". Il risque d'être refusé à la douane.";
-      } else {
-        al.className="alert ok";
-        al.textContent="Âge accepté : "+age+" an"+(age>1?"s":"")+" (limite "+p.en+" : "+limite+" ans"+p.note+").";
-      }
-    } else {
-      var age2 = anneeMax-annee;
-      al.className="alert warn";
-      al.textContent="Ce véhicule a "+age2+" an"+(age2>1?"s":"")+". Ce calculateur ne connaît pas la limite d'âge pour ce type de véhicule "+p.en+". Certains pays en fixent une pour les utilitaires et les véhicules anciens : vérifiez auprès des douanes ou d'un transitaire avant d'acheter.";
-    }
+    var al = $("alerte");
+    var classe = { neuf:"ok", annee_manquante:"info", refusee:"bad", acceptee:"ok", limite_inconnue:"warn" };
+    al.className = "alert " + classe[est.age.statut];
+    al.textContent = phraseAge(est);
+    var refuse = est.age.statut === "refusee";
     $("calc").classList.toggle("dim", refuse);
 
     var ol=$("lignes"); ol.innerHTML="";
@@ -337,15 +294,7 @@ nav.outils a:hover{text-decoration:underline}
     $("pct").textContent = cif>0 ? (total/cif*100).toFixed(1).replace(".",",")+" %" : "—";
     $("grand").textContent = fcfa(cif+total);
 
-    var docs=[
-      ["Facture d'achat","Remise par le vendeur ou le concessionnaire."],
-      ["Connaissement (Bill of Lading)","Remis par la compagnie maritime à l'expédition."],
-      ["Carte grise d'origine","À récupérer auprès du vendeur, en original."],
-      ["Pièce d'identité de l'importateur","Carte d'identité ou passeport valide."],
-      ["Identifiant fiscal","Demandé selon le pays, auprès des impôts."],
-      ["Déclaration en douane","Faite par un transitaire agréé au "+p.port+"."]
-    ];
-    if(p.enclave) docs.splice(5,0,["Documents de transit","Établis au port de débarquement pour traverser le pays voisin jusqu'à la frontière."]);
+    var docs = est.documents;
     var ul=$("docs"); ul.innerHTML="";
     docs.forEach(function(d){ var li=document.createElement("li"); var b=document.createElement("b"); b.textContent=d[0]; var s=document.createElement("span"); s.textContent=d[1]; li.appendChild(b); li.appendChild(s); ul.appendChild(li); });
   }

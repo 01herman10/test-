@@ -17,3 +17,5 @@ jobs:
         with:
           node-version: 22
       - run: node scripts/verifier-liens.mjs
+      - name: Tests des règles douanières et de l'API
+        run: node --test tests/*.test.js
