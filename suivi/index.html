@@ -45,6 +45,16 @@ button,.btn{font:inherit;font-weight:600;font-size:15px;border:0;border-radius:8
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .citation{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:14px;white-space:pre-wrap;margin:0}
 .fine{font-size:13px;color:var(--muted);margin:0}
+.direct{gap:12px}
+.direct .chiffre{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.direct .chiffre b{font-family:var(--f-display);font-weight:800;font-size:44px;line-height:1;font-variant-numeric:tabular-nums}
+.point{width:10px;height:10px;border-radius:50%;background:var(--ok);display:inline-block;box-shadow:0 0 0 0 var(--ok);animation:pouls 2s infinite}
+.point.off{background:var(--muted);animation:none}
+@keyframes pouls{0%{box-shadow:0 0 0 0 rgba(30,116,72,.5)}70%{box-shadow:0 0 0 10px rgba(30,116,72,0)}100%{box-shadow:0 0 0 0 rgba(30,116,72,0)}}
+@media (prefers-reduced-motion:reduce){.point{animation:none}}
+.visiteurs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.visiteurs li{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:14px}
+.visiteurs li span{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -61,6 +71,12 @@ button,.btn{font:inherit;font-weight:600;font-size:15px;border:0;border-radius:8
   </section>
 
   <div id="tableau" hidden>
+    <section class="card direct" aria-live="polite" style="margin-bottom:14px">
+      <div class="eyebrow"><span class="point off" id="point"></span> En direct sur le site</div>
+      <div class="chiffre"><b id="nb-direct">–</b><span id="txt-direct">chargement…</span></div>
+      <ul class="visiteurs" id="visiteurs"></ul>
+      <p class="fine" id="jour"></p>
+    </section>
     <div class="row" style="justify-content:space-between;margin-bottom:12px">
       <div class="compteurs" id="compteurs"></div>
       <div class="row"><button class="sec" id="rafraichir">Actualiser</button><button class="sec" id="sortir">Se déconnecter</button></div>
@@ -146,11 +162,31 @@ function carte(d) {
   return c;
 }
 
+function duree(s) { return s < 60 ? "moins d'une minute" : Math.round(s / 60) + " min"; }
+function chargerDirect() {
+  if ($("tableau").hidden || document.visibilityState !== "visible") return;
+  api("/api/presence").then(function (r) { return r.json(); }).then(function (j) {
+    $("nb-direct").textContent = String(j.enDirect);
+    $("txt-direct").textContent = j.enDirect === 0 ? "personne en ce moment" : j.enDirect === 1 ? "personne sur le site en ce moment" : "personnes sur le site en ce moment";
+    $("point").className = "point" + (j.enDirect ? "" : " off");
+    var ul = $("visiteurs"); ul.innerHTML = "";
+    j.visiteurs.forEach(function (v) {
+      var li = el("li"); li.appendChild(el("b", null, v.page));
+      li.appendChild(el("span", null, [v.pays, v.appareil, "via " + v.source, "depuis " + duree(v.depuisSecondes)].join(" · ")));
+      ul.appendChild(li);
+    });
+    var d = j.dernieres24h;
+    $("jour").textContent = d.visites ? "Dernières 24 h : " + d.visites + " visite" + (d.visites > 1 ? "s" : "") + " · " + d.parSource.map(function (x) { return x[0] + " " + x[1]; }).join(", ") + " · " + d.parPays.slice(0, 4).map(function (x) { return x[0] + " " + x[1]; }).join(", ") : "Aucune visite ces dernières 24 h.";
+  }).catch(function () { $("txt-direct").textContent = "indisponible pour le moment"; });
+}
+setInterval(chargerDirect, 15000);
+document.addEventListener("visibilitychange", chargerDirect);
+
 function charger() {
   erreur("");
   return api("/api/demandes").then(function (r) { return r.json(); }).then(function (j) {
     statuts = j.statuts;
-    $("connexion").hidden = true; $("tableau").hidden = false;
+    $("connexion").hidden = true; $("tableau").hidden = false; chargerDirect();
     var cpt = $("compteurs"); cpt.innerHTML = "";
     var t = el("span"); t.appendChild(document.createTextNode("Total ")); t.appendChild(el("b", null, String(j.total))); cpt.appendChild(t);
     Object.keys(statuts).forEach(function (k) {

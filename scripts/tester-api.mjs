@@ -96,6 +96,24 @@ r = await appel("DELETE", `/api/demandes/${ref}`); verifier("DELETE sans clé �
 r = await appel("DELETE", `/api/demandes/${ref}`, { cle: CLE }); verifier("DELETE avec clé", r.statut === 200 && r.json?.supprime === ref);
 r = await appel("DELETE", `/api/demandes/${ref}`, { cle: CLE }); verifier("DELETE une 2e fois → 404", r.statut === 404);
 
+console.log("\n# Visiteurs en direct");
+const visiteur = crypto.randomUUID();
+r = await appel("POST", "/api/presence", { corps: { id: visiteur, page: "/vitrine/", source: "TikTok", appareil: "téléphone", debut: Date.now() - 90000 } });
+verifier("signal de visite → 204", r.statut === 204, r.texte);
+for (const [nom, corps] of [["identifiant invalide", { id: "x" }], ["corps null", null], ["sans identifiant", { page: "/" }]]) {
+  r = await appel("POST", "/api/presence", { brut: JSON.stringify(corps) }); verifier(`${nom} → 400`, r.statut === 400 && pasDeFuite(r));
+}
+r = await appel("GET", "/api/presence"); verifier("liste en direct sans clé → 401", r.statut === 401);
+r = await appel("GET", "/api/presence", { cle: CLE });
+const vu = r.json?.visiteurs?.find((x) => x.page === "Vitrine" && x.source === "TikTok" && x.appareil === "téléphone");
+verifier("le visiteur apparaît en direct (Vitrine, TikTok, téléphone)", r.statut === 200 && !!vu, r.texte.slice(0, 120));
+verifier("durée de visite calculée (≈ 90 s)", vu && vu.depuisSecondes >= 85 && vu.depuisSecondes < 200);
+verifier("total des 24 h présent", r.json?.dernieres24h?.visites >= 1);
+const avant = r.json?.enDirect ?? 0;
+r = await appel("POST", "/api/presence", { corps: { id: visiteur, depart: true } }); verifier("départ du visiteur → 204", r.statut === 204);
+r = await appel("GET", "/api/presence", { cle: CLE }); verifier("le visiteur parti n'est plus compté", r.json?.enDirect === avant - 1, `avant ${avant}, après ${r.json?.enDirect}`);
+r = await appel("DELETE", "/api/presence", { cle: CLE }); verifier("DELETE /api/presence → 405", r.statut === 405);
+
 console.log("\n# Fichiers privés");
 for (const c of ["/netlify/functions/api-demandes.mjs", "/tests/regles.test.js", "/package.json", "/node_modules/@netlify/blobs/package.json"]) {
   r = await appel("GET", c); verifier(`${c} non publié`, r.statut === 404 || (c === "/package.json" && r.statut === 200));

@@ -28,6 +28,8 @@ Fonctions Netlify dans `netlify/functions/`. Les règles douanières (taux, limi
 | `GET` ou `POST /api/estimation` | Public | Droits, taxes et limite d'âge. Paramètres : `pays`, `type`, `etat` (`occasion` ou `neuf`), `annee`, `prix`, `fret`, `assurance`, `devise` (`EUR` ou `XOF`) |
 | `POST /api/verification` | Public (utilisé par la page) | Reçoit directement chaque demande et la range, même si le filtre anti-spam de Netlify la classe à tort ; piège anti-robots |
 | Formulaire `verification` | Automatique | À chaque demande validée, `demande-recue` calcule l'estimation et range la fiche (stockage Netlify Blobs « demandes ») |
+| `POST /api/presence` | Public (pages du site) | Signal anonyme de visite toutes les 30 s (`presence.js`) : pas de cookie, identifiant aléatoire limité à l'onglet ; robots et tests automatiques non comptés |
+| `GET /api/presence` | Privé | Visiteurs en direct (page, pays, appareil, source) et total des dernières 24 h ; affiché en haut de `/suivi/` |
 | `GET /api/demandes` | Privé | Liste des demandes, avec le message et le lien WhatsApp prêts |
 | `GET /api/demandes/:id/rapport` | Privé | Rapport de vérification à imprimer en PDF |
 | `PATCH /api/demandes/:id` | Privé | Changer le statut (`nouvelle`, `contactee`, `payee`, `rapport_envoye`, `abandonnee`) ou les notes |

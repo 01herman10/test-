@@ -6,20 +6,11 @@
 //   GET   /api/demandes/:id/rapport   rapport HTML prêt à imprimer en PDF
 //   DELETE /api/demandes/:id          supprimer une fiche (test, spam)
 import { getStore } from "@netlify/blobs";
-import { createHash, timingSafeEqual } from "node:crypto";
+import { refuserSiNonAutorise } from "../lib/acces.mjs";
 import { STATUTS, messageWhatsApp, lienWhatsApp, rapportHTML } from "../../douane/demandes.js";
 import { PAYS } from "../../douane/regles.js";
 
 const magasin = () => getStore({ name: "demandes", consistency: "strong" });
-const empreinte = (s) => createHash("sha256").update(String(s)).digest();
-
-function autorise(req) {
-  const cle = Netlify.env.get("ADMIN_CLE");
-  if (!cle) return false;
-  const recu = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  return recu.length > 0 && timingSafeEqual(empreinte(recu), empreinte(cle));
-}
-
 async function trouver(id) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const fiche = await magasin().get(id.toLowerCase(), { type: "json" });
@@ -29,8 +20,8 @@ async function trouver(id) {
 const enrichir = (f) => ({ ...f, paysNom: PAYS[f.paysDestination]?.nom || f.paysDestination, statutLibelle: STATUTS[f.statut] || f.statut, messageWhatsApp: messageWhatsApp(f), lienWhatsApp: lienWhatsApp(f) });
 
 export default async (req, context) => {
-  if (!Netlify.env.get("ADMIN_CLE")) return Response.json({ erreur: "ADMIN_CLE n'est pas configurée sur Netlify." }, { status: 503 });
-  if (!autorise(req)) return Response.json({ erreur: "Clé d'accès manquante ou incorrecte." }, { status: 401 });
+  const refus = refuserSiNonAutorise(req);
+  if (refus) return refus;
 
   const { id, action } = context.params;
   if (req.method === "POST" || req.method === "PUT") return Response.json({ erreur: "Méthode non autorisée." }, { status: 405, headers: { Allow: "GET, PATCH, DELETE" } });

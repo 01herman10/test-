@@ -18,6 +18,8 @@ const DESCRIPTION = {
       exemple: `${BASE}/api/estimation?pays=CI&type=voiture&annee=2021&prix=5000&fret=400&assurance=100&devise=EUR`,
     },
     { methode: "POST", chemin: "/api/verification", acces: "public (page /verification/)", role: "Enregistre une demande de vérification (JSON)." },
+    { methode: "POST", chemin: "/api/presence", acces: "public (pages du site)", role: "Signal anonyme de visite, toutes les 30 s." },
+    { methode: "GET", chemin: "/api/presence", acces: "privé", role: "Visiteurs en direct et total des dernières 24 h." },
     { methode: "GET", chemin: "/api/demandes", acces: "privé (Authorization: Bearer <clé>)", role: "Liste des demandes." },
     { methode: "GET", chemin: "/api/demandes/:id", acces: "privé", role: "Une demande, avec le message et le lien WhatsApp." },
     { methode: "GET", chemin: "/api/demandes/:id/rapport", acces: "privé", role: "Rapport HTML prêt à imprimer en PDF." },
@@ -37,6 +39,6 @@ export default async (req) => {
 // /api/* attrape aussi les adresses inconnues ; les fonctions qui déclarent une adresse plus précise passent avant.
 export const config = {
   path: ["/api", "/api/*"],
-  excludedPath: ["/api/regles", "/api/estimation", "/api/verification", "/api/demandes", "/api/demandes/*"],
+  excludedPath: ["/api/regles", "/api/estimation", "/api/verification", "/api/presence", "/api/demandes", "/api/demandes/*"],
   method: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 };
