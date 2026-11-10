@@ -20,6 +20,7 @@ const DESCRIPTION = {
     { methode: "POST", chemin: "/api/verification", acces: "public (page /verification/)", role: "Enregistre une demande de vérification (JSON)." },
     { methode: "POST", chemin: "/api/presence", acces: "public (pages du site)", role: "Signal anonyme de visite, toutes les 30 s." },
     { methode: "GET", chemin: "/api/presence", acces: "privé", role: "Visiteurs en direct et total des dernières 24 h." },
+    { methode: "DELETE", chemin: "/api/presence?id=… ou ?tout=oui", acces: "privé", role: "Efface une visite, ou remet les compteurs à zéro." },
     { methode: "GET", chemin: "/api/demandes", acces: "privé (Authorization: Bearer <clé>)", role: "Liste des demandes." },
     { methode: "GET", chemin: "/api/demandes/:id", acces: "privé", role: "Une demande, avec le message et le lien WhatsApp." },
     { methode: "GET", chemin: "/api/demandes/:id/rapport", acces: "privé", role: "Rapport HTML prêt à imprimer en PDF." },

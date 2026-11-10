@@ -109,10 +109,21 @@ const vu = r.json?.visiteurs?.find((x) => x.page === "Vitrine" && x.source === "
 verifier("le visiteur apparaît en direct (Vitrine, TikTok, téléphone)", r.statut === 200 && !!vu, r.texte.slice(0, 120));
 verifier("durée de visite calculée (≈ 90 s)", vu && vu.depuisSecondes >= 85 && vu.depuisSecondes < 200);
 verifier("total des 24 h présent", r.json?.dernieres24h?.visites >= 1);
-const avant = r.json?.enDirect ?? 0;
-r = await appel("POST", "/api/presence", { corps: { id: visiteur, depart: true } }); verifier("départ du visiteur → 204", r.statut === 204);
-r = await appel("GET", "/api/presence", { cle: CLE }); verifier("le visiteur parti n'est plus compté", r.json?.enDirect === avant - 1, `avant ${avant}, après ${r.json?.enDirect}`);
-r = await appel("DELETE", "/api/presence", { cle: CLE }); verifier("DELETE /api/presence → 405", r.statut === 405);
+const avant = r.json?.enDirect ?? 0, total = r.json?.dernieres24h?.visites ?? 0;
+r = await appel("POST", "/api/presence", { corps: { id: visiteur, page: "/", depart: true } }); verifier("départ tardif d'une autre page → 204", r.statut === 204);
+r = await appel("GET", "/api/presence", { cle: CLE }); verifier("départ tardif d'une autre page : toujours en direct", r.json?.enDirect === avant, `avant ${avant}, après ${r.json?.enDirect}`);
+r = await appel("POST", "/api/presence", { corps: { id: visiteur, page: "/vitrine/", depart: true } }); verifier("départ du visiteur → 204", r.statut === 204);
+r = await appel("GET", "/api/presence", { cle: CLE });
+verifier("le visiteur parti n'est plus en direct", r.json?.enDirect === avant - 1, `avant ${avant}, après ${r.json?.enDirect}`);
+verifier("mais il reste compté dans le total des 24 h", r.json?.dernieres24h?.visites === total, `avant ${total}, après ${r.json?.dernieres24h?.visites}`);
+r = await appel("POST", "/api/presence", { corps: { id: visiteur, page: "/", source: "TikTok", appareil: "téléphone", debut: Date.now() - 90000 } });
+r = await appel("GET", "/api/presence", { cle: CLE }); verifier("il revient : de nouveau en direct, sans compter deux fois", r.json?.enDirect === avant && r.json?.dernieres24h?.visites === total);
+r = await appel("DELETE", `/api/presence?id=${visiteur}`); verifier("effacer une visite sans clé → 401", r.statut === 401);
+r = await appel("DELETE", "/api/presence", { cle: CLE }); verifier("effacer sans préciser quoi → 400", r.statut === 400 && pasDeFuite(r));
+r = await appel("DELETE", "/api/presence?id=x", { cle: CLE }); verifier("effacer un identifiant invalide → 400", r.statut === 400);
+r = await appel("DELETE", `/api/presence?id=${visiteur}`, { cle: CLE }); verifier("effacer la visite de test", r.statut === 200 && r.json?.efface === 1);
+r = await appel("GET", "/api/presence", { cle: CLE }); verifier("la visite de test n'est plus dans le total", r.json?.dernieres24h?.visites === total - 1 && r.json?.enDirect === avant - 1);
+r = await appel("PUT", "/api/presence", { cle: CLE }); verifier("PUT /api/presence → 405", r.statut === 405);
 
 console.log("\n# Fichiers privés");
 for (const c of ["/netlify/functions/api-demandes.mjs", "/tests/regles.test.js", "/package.json", "/node_modules/@netlify/blobs/package.json"]) {

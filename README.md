@@ -30,6 +30,7 @@ Fonctions Netlify dans `netlify/functions/`. Les règles douanières (taux, limi
 | Formulaire `verification` | Automatique | À chaque demande validée, `demande-recue` calcule l'estimation et range la fiche (stockage Netlify Blobs « demandes ») |
 | `POST /api/presence` | Public (pages du site) | Signal anonyme de visite toutes les 30 s (`presence.js`) : pas de cookie, identifiant aléatoire limité à l'onglet ; robots et tests automatiques non comptés |
 | `GET /api/presence` | Privé | Visiteurs en direct (page, pays, appareil, source) et total des dernières 24 h ; affiché en haut de `/suivi/` |
+| `DELETE /api/presence?id=…` ou `?tout=oui` | Privé | Efface une visite (utilisé par les tests) ou remet les compteurs à zéro |
 | `GET /api/demandes` | Privé | Liste des demandes, avec le message et le lien WhatsApp prêts |
 | `GET /api/demandes/:id/rapport` | Privé | Rapport de vérification à imprimer en PDF |
 | `PATCH /api/demandes/:id` | Privé | Changer le statut (`nouvelle`, `contactee`, `payee`, `rapport_envoye`, `abandonnee`) ou les notes |
