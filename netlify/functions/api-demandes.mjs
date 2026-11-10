@@ -20,10 +20,9 @@ function autorise(req) {
 }
 
 async function trouver(id) {
-  const { blobs } = await magasin().list();
-  const b = blobs.find((x) => x.key.endsWith("_" + id));
-  if (!b) return null;
-  return { cle: b.key, fiche: await magasin().get(b.key, { type: "json" }) };
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const fiche = await magasin().get(id.toLowerCase(), { type: "json" });
+  return fiche ? { cle: id.toLowerCase(), fiche } : null;
 }
 
 const enrichir = (f) => ({ ...f, statutLibelle: STATUTS[f.statut] || f.statut, messageWhatsApp: messageWhatsApp(f), lienWhatsApp: lienWhatsApp(f) });
@@ -36,9 +35,9 @@ export default async (req, context) => {
   try {
     if (!id) {
       const { blobs } = await magasin().list();
-      const cles = blobs.map((b) => b.key).sort().reverse();
-      const fiches = await Promise.all(cles.map((k) => magasin().get(k, { type: "json" })));
-      return Response.json({ total: fiches.length, statuts: STATUTS, demandes: fiches.filter(Boolean).map(enrichir) });
+      const fiches = (await Promise.all(blobs.map((b) => magasin().get(b.key, { type: "json" })))).filter(Boolean);
+      fiches.sort((a, b) => String(b.recueLe).localeCompare(String(a.recueLe)));
+      return Response.json({ total: fiches.length, statuts: STATUTS, demandes: fiches.map(enrichir) });
     }
     const trouve = await trouver(id);
     if (!trouve) return Response.json({ erreur: "Demande introuvable." }, { status: 404 });

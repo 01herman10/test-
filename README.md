@@ -25,6 +25,7 @@ Fonctions Netlify dans `netlify/functions/`. Les règles douanières (taux, limi
 |---|---|---|
 | `GET /api/regles` | Public | Les 8 pays, les types de véhicules et les taux |
 | `GET` ou `POST /api/estimation` | Public | Droits, taxes et limite d'âge. Paramètres : `pays`, `type`, `etat` (`occasion` ou `neuf`), `annee`, `prix`, `fret`, `assurance`, `devise` (`EUR` ou `XOF`) |
+| `POST /api/verification` | Public (utilisé par la page) | Reçoit directement chaque demande et la range, même si le filtre anti-spam de Netlify la classe à tort ; piège anti-robots |
 | Formulaire `verification` | Automatique | À chaque demande validée, `demande-recue` calcule l'estimation et range la fiche (stockage Netlify Blobs « demandes ») |
 | `GET /api/demandes` | Privé | Liste des demandes, avec le message et le lien WhatsApp prêts |
 | `GET /api/demandes/:id/rapport` | Privé | Rapport de vérification à imprimer en PDF |

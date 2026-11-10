@@ -9,10 +9,12 @@ export default {
     const nomFormulaire = data["form-name"] || event.form?.name || event.formName;
     if (nomFormulaire && nomFormulaire !== "verification") return;
     if (!data.whatsapp && !data.vehicule) return;
-    const recueLe = new Date().toISOString();
-    const id = crypto.randomUUID();
-    const fiche = traiterDemande(data, { id, recueLe });
-    await getStore({ name: "demandes", consistency: "strong" }).setJSON(`${recueLe}_${id}`, fiche);
-    console.log(`Demande enregistrée : ${id} (${fiche.vehicule.modele}, ${fiche.paysDestination})`);
+    const ref = String(data.ref || "").toLowerCase();
+    const id = /^[0-9a-f-]{36}$/.test(ref) ? ref : crypto.randomUUID();
+    const fiche = traiterDemande(data, { id, recueLe: new Date().toISOString() });
+    fiche.source = "netlify-forms";
+    // onlyIfNew : la page a peut-être déjà rangé cette demande via /api/verification.
+    const { modified } = await getStore({ name: "demandes", consistency: "strong" }).setJSON(id, fiche, { onlyIfNew: true });
+    console.log(`Demande ${modified ? "enregistrée" : "déjà présente"} : ${id}`);
   },
 };

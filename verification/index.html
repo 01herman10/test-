@@ -97,6 +97,7 @@ button{font:inherit;font-weight:600;font-size:17px;border:0;border-radius:10px;p
       <h2 id="t-form">Demander une vérification</h2>
       <form name="verification" method="POST" action="/verification/merci/" data-netlify="true" netlify-honeypot="bot-field">
         <input type="hidden" name="subject" value="Nouvelle demande de vérification (%{submissionId})">
+        <input type="hidden" name="ref" id="ref">
         <p class="cache"><label>Ne pas remplir : <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
         <label>Votre nom<input type="text" name="nom" id="nom" autocomplete="name" required></label>
         <div class="row">
@@ -155,6 +156,24 @@ button{font:inherit;font-weight:600;font-size:17px;border:0;border-radius:10px;p
   mettre("annee", q.get("annee"));
   mettre("type", q.get("type"));
   if (q.get("prix")) mettre("prix", q.get("prix") + (q.get("devise") === "XOF" ? " FCFA" : " €"));
+
+  // À l'envoi : la demande part d'abord directement à l'API (rangée même si le filtre anti-spam se trompe),
+  // puis le formulaire est envoyé normalement à Netlify Forms. La même référence évite les doublons.
+  var form = document.querySelector('form[name="verification"]');
+  form.addEventListener("submit", function (e) {
+    if (form.dataset.envoye) return;
+    e.preventDefault();
+    var ref = document.getElementById("ref");
+    if (!ref.value) ref.value = (crypto.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx".replace(/x/g, function () { return (Math.random() * 16 | 0).toString(16); }));
+    var champs = {};
+    new FormData(form).forEach(function (v, k) { champs[k] = String(v); });
+    var bouton = form.querySelector("button[type=submit]"); bouton.disabled = true; bouton.textContent = "Envoi…";
+    var fini = false;
+    function suite() { if (fini) return; fini = true; form.dataset.envoye = "1"; form.submit(); }
+    fetch("/api/verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(champs), keepalive: true })
+      .catch(function () {}).then(suite);
+    setTimeout(suite, 4000);
+  });
 })();
 </script>
 </body>
