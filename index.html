@@ -33,6 +33,7 @@
   --warn:#F0C46A; --warn-bg:#352A12; color-scheme:dark}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
 .wrap{max-width:1060px;margin:0 auto;padding-block:28px 88px;
   padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
@@ -84,6 +85,19 @@ li.cif .amt{color:var(--muted)}
 .sub{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
 .sub b{color:var(--ink);font-family:var(--f-mono);font-weight:500}
 .dim{opacity:.45}
+.aide{margin:0;font-size:13px;color:var(--muted)}
+.budget{display:flex;flex-direction:column;gap:2px;border:2px solid var(--accent);border-radius:10px;padding:12px 16px}
+.budget span:first-child{font-weight:600;color:var(--accent)}
+.budget .big{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,5vw,30px);font-variant-numeric:tabular-nums}
+.budget small{color:var(--muted);font-size:13px}
+.budget.bad{border-color:var(--danger)}.budget.bad span:first-child{color:var(--danger)}
+.partage{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);text-decoration:none;cursor:pointer;flex:1 1 180px;min-height:44px}
+.btn:hover{border-color:var(--accent)}
+.btn.wa{background:#25D366;border-color:#25D366;color:#0B2E17}
+.btn.wa:hover{background:#1FBF5B}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fine a{color:var(--accent)}
 
 .docs ul{margin:12px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:1fr;gap:10px}
 @media (min-width:700px){.docs ul{grid-template-columns:1fr 1fr}}
@@ -137,17 +151,28 @@ nav.outils a:hover{text-decoration:underline}
         <hr class="sep">
         <h2 class="h">Prix et transport</h2>
         <div class="field">
-          <span class="lbl" id="dev-l">Devise</span>
-          <div class="seg" role="radiogroup" aria-labelledby="dev-l">
-            <input type="radio" name="devise" id="dev-eur" value="EUR" checked><label for="dev-eur">Euro (€)</label>
-            <input type="radio" name="devise" id="dev-xof" value="XOF"><label for="dev-xof">FCFA</label>
+          <span class="lbl" id="mode-l">Ce que je connais</span>
+          <div class="seg" role="radiogroup" aria-labelledby="mode-l">
+            <input type="radio" name="mode" id="mode-prix" value="prix" checked><label for="mode-prix">Le prix</label>
+            <input type="radio" name="mode" id="mode-budget" value="budget"><label for="mode-budget">Mon budget</label>
           </div>
-          <p class="conv" id="conv" aria-live="polite" hidden></p>
         </div>
         <div class="field">
+          <label for="devise">Monnaie</label>
+          <select id="devise"></select>
+          <p class="aide" id="taux" aria-live="polite"></p>
+          <p class="conv" id="conv" aria-live="polite" hidden></p>
+        </div>
+        <div class="field" id="champ-prix">
           <label for="prix">Prix d'achat du véhicule <span class="cur">(€)</span></label>
           <input id="prix" class="money" type="text" inputmode="decimal" autocomplete="off" value="5000" aria-describedby="prix-err">
           <p class="err" id="prix-err" hidden></p>
+        </div>
+        <div class="field" id="champ-budget" hidden>
+          <label for="budget">Budget total, taxes comprises <span class="cur">(€)</span></label>
+          <input id="budget" class="money" type="text" inputmode="decimal" autocomplete="off" value="10000" aria-describedby="budget-aide budget-err">
+          <p class="aide" id="budget-aide">Tout ce que vous pouvez dépenser : achat, fret, assurance, droits et taxes. Le calcul donne le prix maximum à payer pour le véhicule.</p>
+          <p class="err" id="budget-err" hidden></p>
         </div>
         <div class="row2">
           <div class="field">
@@ -172,11 +197,17 @@ nav.outils a:hover{text-decoration:underline}
       </div>
       <div id="alerte" class="alert" role="status" aria-live="polite"></div>
       <div id="transit" class="alert info" hidden></div>
+      <div id="res-budget" class="budget" aria-live="polite" hidden><span id="rb-titre">Prix d'achat maximum</span><span class="big" id="prix-max"></span><small id="rb-note"></small></div>
       <div id="calc" class="ticket" style="gap:14px">
         <ol class="lines" id="lignes"></ol>
         <div class="total" aria-live="polite" aria-atomic="true"><span>Total droits et taxes</span><span class="big" id="total"></span></div>
         <div class="sub"><span>Soit <b id="pct"></b> de la valeur CIF</span><span><span id="l-grand">Coût total au port</span> : <b id="grand"></b></span></div>
       </div>
+      <div class="partage">
+        <a class="btn wa" id="wa" href="https://wa.me/" target="_blank" rel="noopener">Envoyer sur WhatsApp</a>
+        <button type="button" class="btn" id="copier">Copier le lien du calcul</button>
+      </div>
+      <p class="conv" id="copie" aria-live="polite" hidden></p>
       <a class="cta-verif" id="cta-verif" href="verification/"><span>Vous achetez ce véhicule en Europe ?<small>Faites vérifier l'annonce avant de payer : âge, coût total, papiers.</small></span><span>Faire vérifier →</span></a>
     </section>
   </div>
@@ -187,129 +218,10 @@ nav.outils a:hover{text-decoration:underline}
   </section>
 
   <p class="fine">Estimation indicative, basée sur le tarif commun UEMOA. Chaque ligne est arrondie au franc, comme sur un bulletin de liquidation. Le montant réel peut varier selon la cylindrée, l'âge, les taxes nationales et la valeur retenue par la douane. Non inclus : honoraires du transitaire, frais de port et de parking, immatriculation, assurance locale. Vérifiez toujours auprès des douanes ou d'un transitaire agréé.</p>
+  <p class="fine">L'euro et le franc CFA sont liés par un taux fixe (1 € = 655,957 FCFA). Pour les autres monnaies, le taux est indicatif et mis à jour chaque jour (<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">Rates By Exchange Rate API</a>) ; la douane applique son taux officiel du jour de la déclaration.</p>
 </div>
 
-<script type="module">
-import { EUR, PAYS, TYPES, estimer, phraseAge } from "./douane/regles.js";
-(function(){
-  var MONTANTS = ["prix","fret","assur"];
-  var $ = function(id){ return document.getElementById(id); };
-
-  var selP = $("pays");
-  Object.keys(PAYS).forEach(function(k){ var o=document.createElement("option"); o.value=k; o.textContent=PAYS[k].nom; selP.appendChild(o); });
-  selP.value="CI";
-  var selT = $("type");
-  TYPES.forEach(function(t){ var o=document.createElement("option"); o.value=t.id; o.textContent=t.nom; selT.appendChild(o); });
-
-  var anneeMax = new Date().getFullYear();
-  $("annee").max = anneeMax;
-
-  // Lit un montant saisi à la française ("5 000,50") ou à l'anglaise ("5000.50").
-  // Renvoie null si le champ est vide, NaN si la saisie n'est pas un montant valide.
-  function lireMontant(el){
-    var s = el.value.replace(/[\s  ]/g,"").replace(",",".");
-    if(s==="") return null;
-    var v = /^\d*\.?\d+$|^\d+\.$/.test(s) ? Number(s) : NaN;
-    return isFinite(v) ? v : NaN;
-  }
-  function montant(id){
-    var el=$(id), err=$(id+"-err"), v=lireMontant(el);
-    if(v!==v){
-      el.setAttribute("aria-invalid","true");
-      err.textContent="Montant non reconnu. Utilisez seulement des chiffres, par exemple 5000 ou 5000,50.";
-      err.hidden=false;
-      return 0;
-    }
-    el.removeAttribute("aria-invalid"); err.hidden=true;
-    return v===null ? 0 : v;
-  }
-  function ecrireMontant(v, devise){
-    return devise==="XOF" ? String(Math.round(v)) : String(Math.round(v*100)/100).replace(".",",");
-  }
-  function fcfa(n){ return Math.round(n).toLocaleString("fr-FR") + " FCFA"; }
-  function radio(name){ var r=document.querySelector('input[name="'+name+'"]:checked'); return r ? r.value : ""; }
-
-  // Convertit les montants déjà saisis quand on change de devise, pour que le calcul reste juste.
-  var devisePrec = radio("devise");
-  function changerDevise(){
-    var d = radio("devise");
-    if(d===devisePrec) return;
-    var convertis = 0;
-    MONTANTS.forEach(function(id){
-      var el=$(id), v=lireMontant(el);
-      if(v===null || v!==v) return;
-      el.value = ecrireMontant(d==="XOF" ? v*EUR : v/EUR, d);
-      convertis++;
-    });
-    var c=$("conv");
-    c.textContent = convertis ? "Montants convertis en "+(d==="XOF"?"FCFA":"euros")+" au taux fixe 1 € = 655,957 FCFA." : "";
-    c.hidden = !convertis;
-    devisePrec = d;
-  }
-
-  function ligne(code, titre, explication, montant, cls){
-    var li=document.createElement("li"); if(cls) li.className=cls;
-    li.innerHTML='<span class="code">'+code+'</span><span class="lab"></span><span class="amt"></span>';
-    li.querySelector(".lab").textContent=titre;
-    var s=document.createElement("small"); s.textContent=explication; li.querySelector(".lab").appendChild(s);
-    li.querySelector(".amt").textContent=fcfa(montant);
-    return li;
-  }
-
-  function calculer(){
-    var p = PAYS[selP.value];
-    var t = TYPES.filter(function(x){ return x.id===selT.value; })[0];
-    var devise = radio("devise");
-    var etat = radio("etat");
-    var annee = parseInt($("annee").value,10);
-
-    Array.prototype.forEach.call(document.querySelectorAll(".cur"), function(el){ el.textContent = devise==="EUR" ? "(€)" : "(FCFA)"; });
-    $("t-port").textContent = p.port;
-    $("cta-verif").href = "verification/?pays=" + encodeURIComponent(selP.value) + "&type=" + encodeURIComponent(t.id) + (annee ? "&annee=" + annee : "") + ($("prix").value.trim() ? "&prix=" + encodeURIComponent($("prix").value.trim()) + "&devise=" + devise : "");
-    $("l-grand").textContent = p.enclave ? "Coût total à l'arrivée" : "Coût total au port";
-    $("transit").hidden = !p.enclave;
-    $("transit").textContent = p.enclave ? "Pays sans accès à la mer : le véhicule débarque dans un port voisin (Abidjan, Lomé, Cotonou, Dakar, Tema…) puis rejoint "+p.port.replace("Bureau de douane de ","")+" par la route. Les frais de transit et de transport routier ne sont pas inclus." : "";
-
-    // Chaque ligne est arrondie au franc avant d'être additionnée : le total est la somme exacte des lignes affichées.
-    var est = estimer({ pays: selP.value, type: t.id, etat: etat, annee: annee, prix: montant("prix"), fret: montant("fret"), assurance: montant("assur"), devise: devise, anneeReference: anneeMax });
-    var cif = est.cif, dd = est.lignes.dd, rs = est.lignes.rs, pcs = est.lignes.pcs, pc = est.lignes.pc, tva = est.lignes.tva, total = est.total;
-
-    // Vérification de l'âge
-    var al = $("alerte");
-    var classe = { neuf:"ok", annee_manquante:"info", refusee:"bad", acceptee:"ok", limite_inconnue:"warn" };
-    al.className = "alert " + classe[est.age.statut];
-    al.textContent = phraseAge(est);
-    var refuse = est.age.statut === "refusee";
-    $("calc").classList.toggle("dim", refuse);
-
-    var ol=$("lignes"); ol.innerHTML="";
-    ol.appendChild(ligne("CIF","Valeur en douane","Prix + fret + assurance"+(devise==="EUR"?", converti en FCFA (1 € = 655,957 FCFA)":"")+". Toutes les taxes se calculent à partir de ce montant.",cif,"cif"));
-    ol.appendChild(ligne("DD","Droit de douane · "+t.dd+" %","La taxe principale. Son taux dépend du type de véhicule : "+t.nom.toLowerCase()+".",dd));
-    ol.appendChild(ligne("RS","Redevance statistique · 1 %","Finance le suivi des importations par la douane.",rs));
-    ol.appendChild(ligne("PCS","Prélèvement UEMOA · 1 %","Contribution à l'Union économique et monétaire ouest-africaine.",pcs));
-    ol.appendChild(ligne("PC",(p.aes?"Prélèvement communautaire":"Prélèvement CEDEAO")+" · 0,5 %",p.aes?"Ce pays a quitté la CEDEAO : ce prélèvement est remplacé par celui de l'Alliance des États du Sahel (AES). Taux à confirmer auprès des douanes.":"Contribution à la Communauté des États d'Afrique de l'Ouest.",pc));
-    ol.appendChild(ligne("TVA","TVA · "+p.tva+" %"+(p.tvaNote||""),"Calculée sur la valeur CIF plus toutes les taxes ci-dessus, pas seulement sur le prix. C'est pour ça qu'elle pèse lourd.",tva));
-
-    $("total").textContent = fcfa(total);
-    $("pct").textContent = cif>0 ? (total/cif*100).toFixed(1).replace(".",",")+" %" : "—";
-    $("grand").textContent = fcfa(cif+total);
-
-    var docs = est.documents;
-    var ul=$("docs"); ul.innerHTML="";
-    docs.forEach(function(d){ var li=document.createElement("li"); var b=document.createElement("b"); b.textContent=d[0]; var s=document.createElement("span"); s.textContent=d[1]; li.appendChild(b); li.appendChild(s); ul.appendChild(li); });
-  }
-
-  Array.prototype.forEach.call(document.querySelectorAll('input[name="devise"]'), function(r){
-    r.addEventListener("change", function(){ changerDevise(); calculer(); });
-  });
-  MONTANTS.forEach(function(id){ $(id).addEventListener("input", function(){ $("conv").hidden=true; }); });
-  var f=$("f");
-  f.addEventListener("input", calculer);
-  f.addEventListener("change", calculer);
-  f.addEventListener("submit", function(e){ e.preventDefault(); });
-  calculer();
-})();
-</script>
+<script type="module" src="calculateur.js"></script>
 <script src="/presence.js" defer></script>
 </body>
 </html>

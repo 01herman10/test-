@@ -34,6 +34,12 @@ r = await appel("GET", "/api/regles");
 verifier("GET /api/regles : 8 pays, 9 types", r.statut === 200 && Object.keys(r.json.pays).length === 8 && r.json.types.length === 9);
 verifier("CORS ouvert sur /api/regles", r.entetes.get("access-control-allow-origin") === "*");
 r = await appel("POST", "/api/regles"); verifier("POST /api/regles → 405", r.statut === 405 && r.json?.erreur);
+r = await appel("GET", "/api/taux");
+verifier("GET /api/taux : euro fixe, dollar au taux du jour, attribution", r.statut === 200 && r.json.fcfa.EUR === 655.957 && r.json.fcfa.XOF === 1 && r.json.fcfa.USD > 300 && r.json.fcfa.USD < 900 && /Exchange Rate API/.test(r.json.attribution) && !r.json.secours, JSON.stringify(r.json?.fcfa));
+r = await appel("GET", "/api/estimation?pays=CI&type=voiture&prix=10000&devise=USD");
+verifier("GET /api/estimation en dollars : taux du jour appliqué", r.statut === 200 && r.json.devise === "USD" && r.json.conversion && !r.json.conversion.fixe && r.json.cif > 3000000, JSON.stringify(r.json?.conversion));
+r = await appel("GET", "/api/estimation?pays=CI&type=voiture&budget=10000&fret=400&assurance=100&devise=EUR");
+verifier("GET /api/estimation avec budget : prix maximum 6 418 €", r.statut === 200 && r.json.prixMax === 6418 && r.json.estimation.coutTotal <= r.json.budgetFcfa);
 r = await appel("OPTIONS", "/api/regles"); verifier("OPTIONS /api/regles → 204", r.statut === 204);
 
 console.log("\n# Estimation");
@@ -49,7 +55,7 @@ r = await appel("GET", "/api/estimation?pays=CI&prix=5000&etat=neuf&annee=1990")
 r = await appel("GET", "/api/estimation?pays=ML&prix=5000&annee=2000"); verifier("Mali → limite inconnue, documents de transit", r.json?.age?.statut === "limite_inconnue" && r.json.documents.some(([n]) => n === "Documents de transit"));
 r = await appel("GET", "/api/estimation?pays=CI&prix=0"); verifier("prix 0 → total 0", r.statut === 200 && r.json.total === 0);
 r = await appel("GET", "/api/estimation?pays=CI&prix=5%20000%2C50"); verifier("prix « 5 000,50 » accepté", r.statut === 200 && r.json.cif === Math.round(5000.5 * 655.957));
-for (const [nom, q] of [["pays manquant", "prix=5000"], ["pays inconnu", "pays=FR"], ["type inconnu", "pays=CI&type=avion"], ["prix négatif", "pays=CI&prix=-1"], ["prix texte", "pays=CI&prix=abc"], ["prix infini", "pays=CI&prix=1e400"], ["devise inconnue", "pays=CI&devise=USD"], ["année invalide", "pays=CI&annee=20x1"]]) {
+for (const [nom, q] of [["pays manquant", "prix=5000"], ["pays inconnu", "pays=FR"], ["type inconnu", "pays=CI&type=avion"], ["prix négatif", "pays=CI&prix=-1"], ["prix texte", "pays=CI&prix=abc"], ["prix infini", "pays=CI&prix=1e400"], ["devise inconnue", "pays=CI&devise=BTC"], ["année invalide", "pays=CI&annee=20x1"]]) {
   r = await appel("GET", "/api/estimation?" + q);
   verifier(`${nom} → 400 avec message clair`, r.statut === 400 && r.json?.erreur && pasDeFuite(r), r.texte.slice(0, 80));
 }

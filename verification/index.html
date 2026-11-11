@@ -135,7 +135,7 @@ button{font:inherit;font-weight:600;font-size:17px;border:0;border-radius:10px;p
               <option value="camion">Camion</option><option value="autre">Autre</option>
             </select>
           </label>
-          <label>Prix demandé <small>en euros ou en FCFA</small><input type="text" name="prix" id="prix" inputmode="decimal" placeholder="ex. 5 000 €"></label>
+          <label>Prix demandé <small>en euros, FCFA, dollars, yens…</small><input type="text" name="prix" id="prix" inputmode="decimal" placeholder="ex. 5 000 €"></label>
         </div>
         <label>Votre question <small>facultatif</small><textarea name="message" id="message" placeholder="Ce qui vous inquiète, vos délais, etc."></textarea></label>
         <label class="case"><input type="checkbox" name="consentement" value="oui" required>J'accepte d'être recontacté sur WhatsApp au sujet de cette demande. Mes informations ne servent qu'à cela.</label>
@@ -156,7 +156,8 @@ button{font:inherit;font-weight:600;font-size:17px;border:0;border-radius:10px;p
   mettre("pays_destination", q.get("pays"));
   mettre("annee", q.get("annee"));
   mettre("type", q.get("type"));
-  if (q.get("prix")) mettre("prix", q.get("prix") + (q.get("devise") === "XOF" ? " FCFA" : " €"));
+  var SYMBOLES = { EUR: "€", XOF: "FCFA", USD: "$", CNY: "yuan", JPY: "yen", KRW: "₩", GBP: "£", AED: "AED", RUB: "₽" };
+  if (q.get("prix")) mettre("prix", q.get("prix") + " " + (SYMBOLES[q.get("devise")] || "€"));
 
   // WhatsApp : l'indicatif du pays est obligatoire, sinon le bouton WhatsApp du suivi ne peut pas ouvrir la discussion.
   var INDICATIFS = { BJ: ["+229", "le Bénin"], BF: ["+226", "le Burkina Faso"], CI: ["+225", "la Côte d'Ivoire"], GW: ["+245", "la Guinée-Bissau"],
