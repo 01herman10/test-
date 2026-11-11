@@ -21,9 +21,21 @@ File d'attente des changements pour la prochaine mise en ligne. Tout est prépar
       Guinée équatoriale, Tchad), puis 10 autres à choisir ensemble. Pour chaque pays : tarif douanier, TVA, limites d'âge,
       papiers — à rechercher, puis **à faire confirmer par un transitaire** avant de publier.
 
-## 3. Plus tard (à revoir le jour J)
+## 3. Améliorations proposées par Claude, validées par le propriétaire
+- [ ] **Partager le bulletin sur WhatsApp** en un clic, sous forme d'image avec le logo et l'adresse du site
+      (chaque partage fait connaître Douane Afrique).
+- [ ] **Le calcul à l'envers** : « J'ai X FCFA tout compris, quel prix d'annonce maximum ? », par pays et type de véhicule.
+- [ ] **Des pages par pays et par modèle** (ex. « Frais de douane Toyota Corolla en Côte d'Ivoire ») pour être trouvé sur Google.
+- [ ] **Comparer les ports** pour les pays sans accès à la mer (Mali, Burkina Faso, Niger…) : même voiture via Abidjan, Dakar, Lomé, Cotonou.
+- [ ] **Choisir les prochains pays d'après les visiteurs** : l'espace de suivi indique déjà de quels pays ils viennent.
+- [ ] **Bouton « Le vrai montant était différent ? »** : le client indique le montant réellement payé (avec son reçu) pour corriger les taux peu à peu.
+- [ ] **Transitaires partenaires** par port : une page de transitaires recommandés, source de revenus (ils paient pour recevoir des clients).
+      Commence par des rencontres avec des transitaires, avant le site.
+- [ ] **L'appli installable sur le téléphone** (icône sur l'écran d'accueil), légère, qui marche même avec une connexion faible.
+
+## 4. Plus tard (à revoir le jour J)
 - [ ] **D'autres marchandises que les véhicules** (pièces détachées, électroménager, téléphones…).
 
-## 4. Rappels
+## 5. Rappels
 - Les taux et limites d'âge des 8 pays de l'UEMOA sont toujours « à confirmer » par un transitaire.
 - Quand l'adresse e-mail de Douane Afrique existera : la mettre sur le site et dans les notifications des demandes.
