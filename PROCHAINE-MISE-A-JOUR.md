@@ -12,11 +12,18 @@ File d'attente des changements pour la prochaine mise en ligne. Tout est prépar
       l'exemple n'est plus un lien d'appel sur iPhone.
 - [x] **Économie de crédits** : une modification qui ne touche que les tests ou les réglages GitHub ne remet plus le site en ligne.
 
-## 2. À faire
-- [ ] **Ajouter les pays de la CEMAC** au calculateur : Cameroun, Centrafrique, Congo-Brazzaville, Gabon,
-      Guinée équatoriale, Tchad. Il faut le tarif extérieur commun de la CEMAC, la TVA de chaque pays et les
-      limites d'âge des véhicules — à rechercher, puis **à faire confirmer par un transitaire** avant de publier.
+## 2. À faire (demandé par le propriétaire)
+- [ ] **Les monnaies fortes**, en plus de l'euro : dollar américain (USD), yuan chinois (CNY), yen japonais (JPY),
+      won coréen (KRW), rouble russe (RUB), et à valider : livre sterling (GBP), dirham des Émirats (AED, Dubaï est un
+      grand marché de voitures pour l'Afrique). Beaucoup de voitures viennent maintenant de Chine : le prix peut être en yuan
+      ou en dollars. Conversion en FCFA au taux du jour, avec la date et la source du taux affichées (l'euro garde sa parité fixe).
+- [ ] **24 pays au total** (8 aujourd'hui) : les 6 pays de la CEMAC (Cameroun, Centrafrique, Congo-Brazzaville, Gabon,
+      Guinée équatoriale, Tchad), puis 10 autres à choisir ensemble. Pour chaque pays : tarif douanier, TVA, limites d'âge,
+      papiers — à rechercher, puis **à faire confirmer par un transitaire** avant de publier.
 
-## 3. Rappels
+## 3. Plus tard (à revoir le jour J)
+- [ ] **D'autres marchandises que les véhicules** (pièces détachées, électroménager, téléphones…).
+
+## 4. Rappels
 - Les taux et limites d'âge des 8 pays de l'UEMOA sont toujours « à confirmer » par un transitaire.
 - Quand l'adresse e-mail de Douane Afrique existera : la mettre sur le site et dans les notifications des demandes.
