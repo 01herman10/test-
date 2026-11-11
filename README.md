@@ -4,10 +4,13 @@ Site statique publié sur Netlify (douane-afrique.netlify.app) : estimation des 
 
 | Page | Adresse | Ce qu'elle fait |
 |---|---|---|
-| Calculateur de douane | `/` | Droits et taxes d'un véhicule : Bénin, Burkina Faso, Côte d'Ivoire, Guinée-Bissau, Mali, Niger, Sénégal, Togo |
+| Calculateur de douane | `/` | Droits et taxes d'un véhicule : Bénin, Burkina Faso, Côte d'Ivoire, Guinée-Bissau, Mali, Niger, Sénégal, Togo. Prix en euros, francs CFA, dollars, yuans, yens, wons, livres, dirhams ou roubles ; « Mon budget » (prix d'achat maximum) ; partage WhatsApp et lien qui rouvre le calcul ; bouton « Le vrai montant était différent ? » ; appli installable qui marche hors ligne |
 | Vérification avant achat | `/verification/` | Formulaire « Faire vérifier mon véhicule » (Netlify Forms) ; page de remerciement `/verification/merci/` |
 | Vitrine | `/vitrine/` | Bandeau « Avant d'importer, pesez le vrai prix. » et galerie de photos |
+| Espace de suivi | `/suivi/` | Privé : demandes, visiteurs en direct, visiteurs par pays sur 30 jours, retours « montant différent » |
 | Espace admin | `/admin/` | Modifier l'accroche et les photos de la vitrine, sans toucher au code |
+
+L'euro et le franc CFA sont liés par un taux fixe (1 € = 655,957 FCFA, même valeur pour le franc CFA d'Afrique de l'Ouest et d'Afrique centrale). Les autres monnaies sont converties au taux indicatif du jour (ExchangeRate-API, gratuit, attribution affichée), gardé 12 heures ; si la source ne répond pas, des taux de secours datés sont utilisés (`douane/devises.js`).
 
 Les taux, les limites d'âge et les prélèvements sont indicatifs et doivent être vérifiés auprès des douanes ou d'un transitaire agréé. Les points à confirmer sont signalés dans le calculateur.
 
@@ -24,8 +27,12 @@ Fonctions Netlify dans `netlify/functions/`. Les règles douanières (taux, limi
 | Adresse | Accès | Ce qu'elle fait |
 |---|---|---|
 | `GET /api` | Public | Description du back-end : toutes les adresses, paramètres et exemples |
-| `GET /api/regles` | Public | Les 8 pays, les types de véhicules et les taux |
-| `GET` ou `POST /api/estimation` | Public | Droits, taxes et limite d'âge. Paramètres : `pays`, `type`, `etat` (`occasion` ou `neuf`), `annee`, `prix`, `fret`, `assurance`, `devise` (`EUR` ou `XOF`) |
+| `GET /api/regles` | Public | Les 8 pays, les types de véhicules, les taux et les monnaies |
+| `GET /api/taux` | Public | Francs CFA pour 1 unité de chaque monnaie (euro fixe, autres au taux du jour), date et source |
+| `GET` ou `POST /api/estimation` | Public | Droits, taxes et limite d'âge. Paramètres : `pays`, `type`, `etat` (`occasion` ou `neuf`), `annee`, `prix`, `fret`, `assurance`, `devise` (`EUR`, `XOF`, `USD`, `CNY`, `JPY`, `KRW`, `GBP`, `AED`, `RUB`). Avec `budget` à la place de `prix` : prix d'achat maximum pour ce budget tout compris |
+| `POST /api/retour` | Public (calculateur) | « Le vrai montant était différent ? » : montant réellement payé, sans donnée personnelle ; l'estimation est recalculée côté serveur ; piège anti-robots |
+| `GET /api/retours` · `DELETE /api/retours?id=…` | Privé | Retours reçus, écart moyen par pays ; supprimer un retour |
+| `GET /api/statistiques?jours=30` | Privé | Visites par pays, source et appareil (simples compteurs par jour, sans donnée personnelle) ; les pays pas encore couverts sont signalés |
 | `POST /api/verification` | Public (utilisé par la page) | Reçoit directement chaque demande et la range, même si le filtre anti-spam de Netlify la classe à tort ; piège anti-robots |
 | Formulaire `verification` | Automatique | À chaque demande validée, `demande-recue` calcule l'estimation et range la fiche (stockage Netlify Blobs « demandes ») |
 | `POST /api/presence` | Public (pages du site) | Signal anonyme de visite toutes les 30 s (`presence.js`) : pas de cookie, identifiant aléatoire limité à l'onglet ; robots et tests automatiques non comptés |
@@ -40,7 +47,9 @@ Les adresses privées demandent l'en-tête `Authorization: Bearer <clé>`, la cl
 
 Exemple : `https://douane-afrique.netlify.app/api/estimation?pays=CI&type=voiture&annee=2021&prix=5000&fret=400&assurance=100&devise=EUR`
 
-Tests : `npm test` (règles et traitement des demandes) ; campagnes complètes sur le site en ligne : `ADMIN_CLE=… node scripts/tester-api.mjs` (API) et `ADMIN_CLE=… node scripts/tester-app.mjs` (pages dans un vrai navigateur, Playwright requis). Les deux effacent leurs données de test, même en cas d'arrêt.
+Tests : `npm test` (règles, monnaies, budget, partage, demandes, retours, statistiques) ; campagnes complètes sur le site en ligne : `ADMIN_CLE=… node scripts/tester-api.mjs` (API) et `ADMIN_CLE=… node scripts/tester-app.mjs` (pages dans un vrai navigateur, Playwright requis). Les deux effacent leurs données de test, même en cas d'arrêt.
+
+Sans mettre en ligne (donc sans crédits Netlify) : `ADMIN_CLE=essai node scripts/serveur-local.mjs` lance une copie locale du site avec ses fonctions et un stockage temporaire, puis `ADMIN_CLE=essai node scripts/tester-api.mjs http://localhost:8888` et `ADMIN_CLE=essai BASE=http://localhost:8888 node scripts/tester-app.mjs`.
 
 ## Espace admin (vitrine)
 

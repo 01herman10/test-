@@ -23,9 +23,15 @@
   var corps = function (depart) {
     return JSON.stringify({ id: id, page: location.pathname, source: lire("presence-source") || "Direct",
       appareil: (window.matchMedia && matchMedia("(pointer: coarse)").matches) || innerWidth < 760 ? "téléphone" : "ordinateur",
-      debut: Number(lire("presence-debut")) || Date.now(), depart: !!depart });
+      debut: Number(lire("presence-debut")) || Date.now(), depart: !!depart, premier: !depart && !lire("presence-compte") });
   };
-  function envoyer() { if (document.visibilityState === "visible") fetch("/api/presence", { method: "POST", headers: { "Content-Type": "application/json" }, body: corps(false), keepalive: true }).catch(function () {}); }
+  // La visite n'est comptée qu'une fois par onglet dans les statistiques du jour (drapeau « premier »).
+  function envoyer() {
+    if (document.visibilityState !== "visible") return;
+    var b = corps(false);
+    fetch("/api/presence", { method: "POST", headers: { "Content-Type": "application/json" }, body: b, keepalive: true })
+      .then(function (r) { if (r.ok) ecrire("presence-compte", "1"); }).catch(function () {});
+  }
   envoyer();
   setInterval(envoyer, 30000);
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") envoyer(); });

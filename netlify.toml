@@ -42,3 +42,15 @@
   to = "/404"
   status = 404
   force = true
+
+# Appli installable : le navigateur doit toujours vérifier s'il existe une nouvelle version du service worker.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json; charset=utf-8"

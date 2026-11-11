@@ -55,6 +55,17 @@ button,.btn{font:inherit;font-weight:600;font-size:15px;border:0;border-radius:8
 .visiteurs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .visiteurs li{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:14px}
 .visiteurs li span{color:var(--muted)}
+.tableau-pays{width:100%;border-collapse:collapse;font-size:14px}
+.tableau-pays td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tableau-pays td.n{text-align:right;font-family:var(--f-mono);white-space:nowrap}
+.barre{height:8px;border-radius:4px;background:var(--accent);min-width:2px}
+.badge{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:600;white-space:nowrap}
+.badge.oui{background:var(--ok-bg);color:var(--ok)}.badge.non{background:var(--warn-bg);color:var(--warn)}
+.retours{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.retours li{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;display:flex;flex-direction:column;gap:4px}
+.retours .ecart{font-family:var(--f-mono);font-weight:600}
+.retours .ecart.haut{color:var(--danger)}.retours .ecart.bas{color:var(--ok)}
+.retours button{align-self:flex-start;font-size:13px;padding:4px 10px}
 </style>
 </head>
 <body>
@@ -76,6 +87,17 @@ button,.btn{font:inherit;font-weight:600;font-size:15px;border:0;border-radius:8
       <div class="chiffre"><b id="nb-direct">–</b><span id="txt-direct">chargement…</span></div>
       <ul class="visiteurs" id="visiteurs"></ul>
       <p class="fine" id="jour"></p>
+    </section>
+    <section class="card" style="margin-bottom:14px" aria-labelledby="stats-t">
+      <div class="tete"><b id="stats-t">Visiteurs par pays · 30 derniers jours</b><span class="date" id="stats-total"></span></div>
+      <p class="fine">Les pays très visités mais pas encore couverts par le calculateur sont les meilleurs candidats pour la prochaine mise à jour. Aucune donnée personnelle : seulement des compteurs.</p>
+      <table class="tableau-pays"><tbody id="stats-pays"></tbody></table>
+      <p class="fine" id="stats-sources"></p>
+    </section>
+    <section class="card" style="margin-bottom:14px" aria-labelledby="retours-t">
+      <div class="tete"><b id="retours-t">Retours « Le vrai montant était différent ? »</b><span class="date" id="retours-total"></span></div>
+      <p class="fine" id="retours-moyens"></p>
+      <ul class="retours" id="retours"></ul>
     </section>
     <div class="row" style="justify-content:space-between;margin-bottom:12px">
       <div class="compteurs" id="compteurs"></div>
@@ -180,13 +202,56 @@ function chargerDirect() {
   }).catch(function () { $("txt-direct").textContent = "indisponible pour le moment"; });
 }
 setInterval(chargerDirect, 15000);
+
+function chargerStats() {
+  api("/api/statistiques?jours=30").then(function (r) { return r.json(); }).then(function (j) {
+    $("stats-total").textContent = j.visites + " visite" + (j.visites > 1 ? "s" : "");
+    var tb = $("stats-pays"); tb.innerHTML = "";
+    var max = j.pays.length ? j.pays[0].visites : 1;
+    if (!j.pays.length) { var tr0 = el("tr"); tr0.appendChild(el("td", null, "Pas encore de visite comptée.")); tb.appendChild(tr0); }
+    j.pays.slice(0, 12).forEach(function (p) {
+      var tr = el("tr");
+      tr.appendChild(el("td", null, p.nom));
+      var tdB = el("td"); tdB.style.width = "40%"; var b = el("div", "barre"); b.style.width = Math.round(p.visites / max * 100) + "%"; tdB.appendChild(b); tr.appendChild(tdB);
+      tr.appendChild(el("td", "n", String(p.visites)));
+      var tdC = el("td"); tdC.appendChild(el("span", "badge " + (p.couvert ? "oui" : "non"), p.couvert ? "couvert" : p.code === "??" ? "—" : "pas encore couvert")); tr.appendChild(tdC);
+      tb.appendChild(tr);
+    });
+    $("stats-sources").textContent = j.sources.length ? "Sources : " + j.sources.map(function (x) { return x[0] + " " + x[1]; }).join(", ") + " · Appareils : " + j.appareils.map(function (x) { return x[0] + " " + x[1]; }).join(", ") : "";
+  }).catch(function () { $("stats-total").textContent = "indisponible"; });
+}
+
+function chargerRetours() {
+  api("/api/retours").then(function (r) { return r.json(); }).then(function (j) {
+    $("retours-total").textContent = j.total + " retour" + (j.total > 1 ? "s" : "");
+    $("retours-moyens").textContent = j.ecartsParPays.length ? "Écart moyen avec nos estimations : " + j.ecartsParPays.map(function (p) { return p.pays + " " + (p.ecartMoyen > 0 ? "+" : "") + String(p.ecartMoyen).replace(".", ",") + " % (" + p.nombre + ")"; }).join(", ") + ". Un écart qui se répète dans un pays veut dire qu'un taux est à corriger." : "Aucun retour pour l'instant. Les visiteurs peuvent en envoyer sous le bulletin du calculateur.";
+    var ul = $("retours"); ul.innerHTML = "";
+    j.retours.slice(0, 20).forEach(function (r) {
+      var li = el("li");
+      li.appendChild(el("b", null, [r.paysNom, r.typeNom || r.type, r.annee, r.etat].filter(Boolean).join(" · ")));
+      var l = el("span");
+      l.appendChild(document.createTextNode("Payé " + fcfa(r.montantReel) + " (" + r.couvreLibelle.toLowerCase() + ") · estimé " + fcfa(r.montantEstime) + " · "));
+      var e = el("span", "ecart" + (r.ecartPourcent > 5 ? " haut" : r.ecartPourcent < -5 ? " bas" : ""), (r.ecartPourcent > 0 ? "+" : "") + String(r.ecartPourcent).replace(".", ",") + " %");
+      l.appendChild(e); li.appendChild(l);
+      li.appendChild(el("span", "date", new Date(r.recuLe).toLocaleDateString("fr-FR") + (r.anneeDedouanement ? " · dédouané en " + r.anneeDedouanement : "") + " · prix saisi " + r.prix + " " + r.devise));
+      if (r.commentaire) li.appendChild(el("p", "citation", r.commentaire));
+      var sup = el("button", "sec", "Supprimer");
+      sup.addEventListener("click", function () {
+        if (!confirm("Supprimer ce retour ?")) return;
+        api("/api/retours?id=" + encodeURIComponent(r.id), { method: "DELETE" }).then(chargerRetours).catch(function (x) { erreur(x.message); });
+      });
+      li.appendChild(sup);
+      ul.appendChild(li);
+    });
+  }).catch(function () { $("retours-total").textContent = "indisponible"; });
+}
 document.addEventListener("visibilitychange", chargerDirect);
 
 function charger() {
   erreur("");
   return api("/api/demandes").then(function (r) { return r.json(); }).then(function (j) {
     statuts = j.statuts;
-    $("connexion").hidden = true; $("tableau").hidden = false; chargerDirect();
+    $("connexion").hidden = true; $("tableau").hidden = false; chargerDirect(); chargerStats(); chargerRetours();
     var cpt = $("compteurs"); cpt.innerHTML = "";
     var t = el("span"); t.appendChild(document.createTextNode("Total ")); t.appendChild(el("b", null, String(j.total))); cpt.appendChild(t);
     Object.keys(statuts).forEach(function (k) {

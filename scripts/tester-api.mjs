@@ -23,6 +23,7 @@ const pasDeFuite = (r) => !/errorType|stack|trace|at .*\.mjs/i.test(r.texte);
 
 // Données de test, toujours effacées à la fin, même si un test s'arrête en route.
 const ref = crypto.randomUUID(), visiteur = crypto.randomUUID(), robot = crypto.randomUUID(), cubotId = crypto.randomUUID();
+let retourId = null;
 let r;
 try {
 console.log("\n# Description et règles");
@@ -140,6 +141,30 @@ const cubot = (await appel("GET", "/api/presence", { cle: CLE })).json?.derniere
 verifier("téléphone Cubot (nom proche de « bot ») : bien compté", cubot === apresRobot + 1, `avant ${apresRobot}, après ${cubot}`);
 r = await appel("PUT", "/api/presence", { cle: CLE }); verifier("PUT /api/presence → 405", r.statut === 405);
 
+console.log("\n# Retours « Le vrai montant était différent ? » et statistiques");
+const retourBase = { pays: "CI", type: "voiture", etat: "occasion", annee: 2022, devise: "EUR", prix: 5000, fret: 400, assurance: 100, couvre: "taxes", anneeDedouanement: 2026, commentaire: "TEST automatique, à ignorer" };
+r = await appel("POST", "/api/retour", { corps: { ...retourBase, montantReel: 1800000 } });
+retourId = r.json?.id || null;
+verifier("POST /api/retour : enregistré, écart +12 %", r.statut === 201 && r.json?.ecartPourcent === 12, r.texte.slice(0, 200));
+r = await appel("POST", "/api/retour", { corps: { ...retourBase, montantReel: "" } }); verifier("retour sans montant → 400", r.statut === 400 && /manquant/.test(r.json?.erreur) && pasDeFuite(r));
+r = await appel("POST", "/api/retour", { corps: { ...retourBase, pays: "FR", montantReel: 100000 } }); verifier("retour pays inconnu → 400", r.statut === 400);
+r = await appel("POST", "/api/retour", { brut: "{pas du json" }); verifier("retour JSON cassé → 400", r.statut === 400 && pasDeFuite(r));
+r = await appel("POST", "/api/retour", { corps: { ...retourBase, montantReel: 1800000, "bot-field": "spam" } }); verifier("retour d'un robot (champ piège) → 204, rien rangé", r.statut === 204);
+r = await appel("GET", "/api/retour"); verifier("GET /api/retour → 405", r.statut === 405);
+r = await appel("GET", "/api/retours"); verifier("liste des retours sans clé → 401", r.statut === 401);
+r = await appel("GET", "/api/retours", { cle: CLE });
+verifier("liste des retours avec clé", r.statut === 200 && r.json.retours.some((x) => x.id === retourId && x.montantEstime === 1607260), r.texte.slice(0, 200));
+r = await appel("DELETE", "/api/retours?id=x", { cle: CLE }); verifier("supprimer un retour avec un identifiant invalide → 400", r.statut === 400);
+r = await appel("DELETE", `/api/retours?id=${retourId}`, { cle: CLE }); verifier("supprimer le retour de test", r.statut === 200);
+r = await appel("GET", "/api/retours", { cle: CLE }); verifier("le retour de test a disparu", !r.json.retours.some((x) => x.id === retourId));
+r = await appel("GET", "/api/statistiques"); verifier("statistiques sans clé → 401", r.statut === 401);
+r = await appel("GET", "/api/statistiques?jours=7", { cle: CLE });
+verifier("statistiques sur 7 jours", r.statut === 200 && r.json.jours === 7 && Array.isArray(r.json.pays) && r.json.parJour.length === 7, r.texte.slice(0, 200));
+
+console.log("\n# Appli installable");
+r = await appel("GET", "/manifest.webmanifest"); verifier("manifeste de l'appli", r.statut === 200 && r.json?.short_name === "Douane Afrique");
+r = await appel("GET", "/sw.js"); verifier("service worker publié, jamais gardé en cache", r.statut === 200 && /no-cache/.test(r.entetes.get("cache-control") || ""));
+
 console.log("\n# Fichiers privés");
 for (const c of ["/netlify/functions/api-demandes.mjs", "/tests/regles.test.js", "/scripts/tester-api.mjs", "/package.json", "/node_modules/@netlify/blobs/package.json"]) {
   r = await appel("GET", c); verifier(`${c} non publié`, r.statut === 404 || (c === "/package.json" && r.statut === 200));
@@ -150,6 +175,7 @@ for (const c of ["/netlify/functions/api-demandes.mjs", "/tests/regles.test.js",
 } finally {
   await fetch(`${BASE}/api/demandes/${ref}`, { method: "DELETE", headers: { Authorization: "Bearer " + CLE } }).catch(() => {});
   for (const id of [visiteur, robot, cubotId]) await fetch(`${BASE}/api/presence?id=${id}`, { method: "DELETE", headers: { Authorization: "Bearer " + CLE } }).catch(() => {});
+  if (retourId) await fetch(`${BASE}/api/retours?id=${retourId}`, { method: "DELETE", headers: { Authorization: "Bearer " + CLE } }).catch(() => {});
 }
 
 console.log(`\n${ok} réussis, ${ko} échoués`);

@@ -217,8 +217,65 @@ $("copier").addEventListener("click", async () => {
   msg.hidden = false;
 });
 
+// « Le vrai montant était différent ? » : envoie le montant réellement payé avec le calcul affiché.
+$("annee-dedouanement").value = anneeMax;
+$("annee-dedouanement").max = anneeMax;
+$("f-retour").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const reel = $("reel"), err = $("reel-err"), msg = $("retour-msg"), bouton = $("envoyer-retour");
+  const v = lireMontant(reel);
+  if (v === null || v !== v || v < 1000) {
+    reel.setAttribute("aria-invalid", "true");
+    err.textContent = "Indiquez le montant payé en francs CFA, par exemple 1 800 000.";
+    err.hidden = false;
+    reel.focus();
+    return;
+  }
+  reel.removeAttribute("aria-invalid");
+  err.hidden = true;
+  const s = dernier.saisie;
+  const corps = {
+    pays: s.pays, type: s.type, etat: s.etat, annee: s.annee, devise: s.devise, prix: s.prix, fret: s.fret, assurance: s.assurance,
+    couvre: radio("couvre"), montantReel: v, anneeDedouanement: $("annee-dedouanement").value, commentaire: $("commentaire").value,
+    "bot-field": $("bot-field").value,
+  };
+  bouton.disabled = true;
+  msg.hidden = false;
+  msg.textContent = "Envoi…";
+  try {
+    const r = await fetch("/api/retour", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok && r.status !== 204) throw new Error(j.erreur || "Erreur " + r.status);
+    const ec = j.ecartPourcent;
+    msg.textContent = "Merci ! Votre retour est enregistré." + (ec != null && ec !== 0 ? " Écart avec notre estimation : " + (ec > 0 ? "+" : "") + String(ec).replace(".", ",") + " %." : "");
+    $("f-retour").reset();
+    $("annee-dedouanement").value = anneeMax;
+  } catch (x) {
+    msg.textContent = "L'envoi n'a pas marché : " + x.message + ". Réessayez dans un moment.";
+  } finally {
+    bouton.disabled = false;
+  }
+});
+
 afficherTaux();
 calculer();
+
+// Appli installable : copie hors ligne et bouton « Installer l'appli » (Android, ordinateur).
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+let demandeInstallation = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  demandeInstallation = e;
+  $("installer").hidden = false;
+});
+$("installer").addEventListener("click", async () => {
+  if (!demandeInstallation) return;
+  demandeInstallation.prompt();
+  await demandeInstallation.userChoice.catch(() => {});
+  demandeInstallation = null;
+  $("installer").hidden = true;
+});
+window.addEventListener("appinstalled", () => { $("installer").hidden = true; });
 
 // Taux du jour : remplace les taux de secours dès qu'il arrive.
 fetch("/api/taux")

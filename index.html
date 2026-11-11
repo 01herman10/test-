@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0D5A66">
+<link rel="icon" href="/icones/icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icones/apple-touch-icon.png">
 </head>
 <body style="margin:0">
 <title>Calculateur Douane Véhicule</title>
@@ -50,7 +54,7 @@ form{display:flex;flex-direction:column;gap:16px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:420px){.row2{grid-template-columns:1fr}}
 label,.lbl{font-weight:500;font-size:14px}
-select,input[type=number],input[type=text]{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+select,textarea,input[type=number],input[type=text]{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
 input.money{font-variant-numeric:tabular-nums}
 input[aria-invalid="true"]{border-color:var(--danger);background:var(--danger-bg)}
 .err{margin:0;font-size:13px;color:var(--danger)}
@@ -98,6 +102,14 @@ li.cif .amt{color:var(--muted)}
 .btn.wa:hover{background:#1FBF5B}
 .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .fine a{color:var(--accent)}
+.retour{border-top:1px dashed var(--line);padding-top:12px}
+.retour summary{cursor:pointer;font-weight:600;color:var(--accent);font-size:15px;padding:4px 0}
+.retour summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.retour form{margin-top:12px;gap:12px}
+.retour .btn{flex:0 0 auto;align-self:flex-start;background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+textarea{resize:vertical}
+label small{font-weight:400;color:var(--muted)}
+.cache{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 
 .docs ul{margin:12px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:1fr;gap:10px}
 @media (min-width:700px){.docs ul{grid-template-columns:1fr 1fr}}
@@ -110,12 +122,13 @@ nav.outils{display:flex;justify-content:flex-end;gap:8px 18px;flex-wrap:wrap}
 .cta-verif small{display:block;font-weight:400;color:var(--muted);font-size:13px}
 nav.outils a{color:var(--accent);font-weight:600;text-decoration:none;font-size:14px}
 nav.outils a:hover{text-decoration:underline}
+nav.outils .installer{font:inherit;font-weight:600;font-size:14px;color:var(--accent-ink);background:var(--accent);border:0;border-radius:999px;padding:4px 12px;cursor:pointer}
 .fine{font-size:13px;color:var(--muted);margin:0;max-width:75ch}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <div class="wrap">
-  <nav class="outils"><a href="verification/">Faire vérifier mon véhicule</a><a href="vitrine/">Notre vitrine →</a></nav>
+  <nav class="outils"><button type="button" class="installer" id="installer" hidden>Installer l'appli</button><a href="verification/">Faire vérifier mon véhicule</a><a href="vitrine/">Notre vitrine →</a></nav>
   <header>
     <div class="eyebrow">Zone UEMOA · 8 pays</div>
     <h1>Combien vais-je payer à la douane&nbsp;?</h1>
@@ -208,6 +221,37 @@ nav.outils a:hover{text-decoration:underline}
         <button type="button" class="btn" id="copier">Copier le lien du calcul</button>
       </div>
       <p class="conv" id="copie" aria-live="polite" hidden></p>
+      <details class="retour" id="retour">
+        <summary>Vous avez déjà dédouané ? Le vrai montant était différent ?</summary>
+        <form id="f-retour" novalidate>
+          <p class="aide">Dites-nous ce que vous avez vraiment payé pour le véhicule calculé ci-dessus. Cela nous aide à corriger le calculateur pour tout le monde. Aucun nom ni numéro n'est demandé.</p>
+          <div class="field">
+            <span class="lbl" id="couvre-l">Le montant payé couvre</span>
+            <div class="seg" role="radiogroup" aria-labelledby="couvre-l">
+              <input type="radio" name="couvre" id="couvre-taxes" value="taxes" checked><label for="couvre-taxes">Droits et taxes</label>
+              <input type="radio" name="couvre" id="couvre-total" value="total"><label for="couvre-total">Tout compris</label>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="reel">Montant payé (FCFA)</label>
+              <input id="reel" class="money" type="text" inputmode="numeric" autocomplete="off" aria-describedby="reel-err">
+              <p class="err" id="reel-err" hidden></p>
+            </div>
+            <div class="field">
+              <label for="annee-dedouanement">Année du dédouanement</label>
+              <input id="annee-dedouanement" type="number" inputmode="numeric" min="2000" step="1">
+            </div>
+          </div>
+          <div class="field">
+            <label for="commentaire">Ce qui était différent <small>(facultatif)</small></label>
+            <textarea id="commentaire" rows="3" maxlength="600" placeholder="Par exemple : la douane a retenu une valeur plus haute, il y avait une taxe en plus…"></textarea>
+          </div>
+          <div class="cache" aria-hidden="true"><label>Ne pas remplir <input type="text" id="bot-field" tabindex="-1" autocomplete="off"></label></div>
+          <button type="submit" class="btn" id="envoyer-retour">Envoyer mon retour</button>
+          <p class="conv" id="retour-msg" aria-live="polite" hidden></p>
+        </form>
+      </details>
       <a class="cta-verif" id="cta-verif" href="verification/"><span>Vous achetez ce véhicule en Europe ?<small>Faites vérifier l'annonce avant de payer : âge, coût total, papiers.</small></span><span>Faire vérifier →</span></a>
     </section>
   </div>

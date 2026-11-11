@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0D5A66"/>
+  <!-- Bulletin de liquidation : ticket jaune à bord dentelé, lignes de calcul et total -->
+  <path d="M168 120h176a12 12 0 0 1 12 12v236l-19 14-19-14-19 14-19-14-19 14-19-14-19 14-19-14-19 14-19-14-19 14V132a12 12 0 0 1 12-12z" fill="#F2C230"/>
+  <rect x="190" y="160" width="132" height="14" rx="7" fill="#15232A" opacity=".55"/>
+  <rect x="190" y="196" width="100" height="14" rx="7" fill="#15232A" opacity=".55"/>
+  <rect x="190" y="232" width="118" height="14" rx="7" fill="#15232A" opacity=".55"/>
+  <rect x="190" y="282" width="132" height="34" rx="8" fill="#15232A"/>
+</svg>

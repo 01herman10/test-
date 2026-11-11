@@ -75,6 +75,20 @@ const refsTest = [];
   v('formulaire prérempli depuis le calculateur', (await p.inputValue('#pays_destination')) === 'BF' && (await p.inputValue('#annee')) === '2005' && (await p.inputValue('#prix')) === '5000 €');
   await p.close();
 
+  console.log('\n# « Le vrai montant était différent ? » (envoi intercepté) et appli installable');
+  p = await b.newPage();
+  const retours = [];
+  await p.route('**/api/retour', async r => { retours.push(JSON.parse(r.request().postData())); await r.fulfill({ status: 201, contentType: 'application/json', body: '{"enregistre":true,"ecartPourcent":12}' }); });
+  await p.goto(B + '/');
+  await p.click('#retour summary'); await p.click('#envoyer-retour');
+  v('retour sans montant : message d\'aide', await p.isVisible('#reel-err'));
+  await p.fill('#reel', '1 800 000'); await p.click('#envoyer-retour');
+  await p.waitForFunction(() => /Merci/.test(document.getElementById('retour-msg').textContent), null, { timeout: 5000 }).catch(() => {});
+  v('retour envoyé avec le calcul affiché', retours.length === 1 && retours[0].pays === 'CI' && retours[0].montantReel === 1800000 && retours[0].prix === 5000, JSON.stringify(retours[0]));
+  v('remerciement avec l\'écart', /\+12 %/.test(await p.textContent('#retour-msg')));
+  v('service worker installé', await p.evaluate(() => navigator.serviceWorker.ready.then(r => !!r.active)));
+  await p.close();
+
   console.log('\n# Formulaire « Faire vérifier mon véhicule » (envoi intercepté)');
   p = await b.newPage();
   const envois = [];
@@ -92,10 +106,12 @@ const refsTest = [];
   v('WhatsApp sans indicatif : envoi bloqué avec explication', envois.length === 0 && /indicatif.*\+228 pour le Togo/.test(msgWa), msgWa);
   v('l\'exemple du numéro n\'est pas un lien d\'appel sur iPhone', await p.$('meta[name="format-detection"][content="telephone=no"]') !== null);
   await p.fill('#whatsapp', '+228 90 00 00 00');
-  await p.click('button[type=submit]'); await p.waitForTimeout(1500);
+  // On attend l'envoi réel du formulaire plutôt qu'un délai fixe (plus fiable sur une connexion lente).
+  await Promise.all([p.waitForRequest(r => r.url().includes('/verification/merci/') && r.method() === 'POST', { timeout: 8000 }).catch(() => {}), p.click('button[type=submit]')]);
+  await p.waitForTimeout(500);
   const api = envois.find(e => e.ref), net = envois.find(e => e.netlify);
   v('envoi à l\'API avec une référence', !!api && /^[0-9a-f-]{36}$/.test(api.ref) && api.vehicule === 'Renault Clio');
-  v('puis envoi Netlify Forms avec la même référence', !!net && net.netlify.includes('ref=' + api?.ref) && net.netlify.includes('form-name=verification'));
+  v('puis envoi Netlify Forms avec la même référence', !!net && net.netlify.includes('ref=' + api?.ref) && net.netlify.includes('form-name=verification'), JSON.stringify(envois).slice(0, 400));
   v('une seule fois chacun', envois.filter(e => e.ref).length === 1 && envois.filter(e => e.netlify).length === 1);
   await p.close();
   p = await b.newPage();

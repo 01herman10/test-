@@ -1,9 +1,11 @@
 // Visiteurs en direct, anonymes (aucun cookie, aucune donnée personnelle).
-//   POST /api/presence  public  : signal envoyé toutes les 30 s par les pages ({ id, page, source, appareil, debut, depart })
+//   POST /api/presence  public  : signal envoyé toutes les 30 s par les pages ({ id, page, source, appareil, debut, depart, premier })
+//                                 premier = première page de la visite : ajoutée aux compteurs du jour (/api/statistiques)
 //   GET  /api/presence  privé   : qui est sur le site en ce moment, et le total des dernières 24 h
 //   DELETE /api/presence?id=…  ou  ?tout=oui   privé : efface une visite (tests) ou remet les compteurs à zéro
 import { getStore } from "@netlify/blobs";
 import { refuserSiNonAutorise } from "../lib/acces.mjs";
+import { compterVisite } from "../lib/statistiques.mjs";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACTIF_MS = 75 * 1000;          // vu dans les 75 dernières secondes = sur le site
@@ -35,10 +37,13 @@ async function signal(req, context) {
   const code = context.geo?.country?.code || "";
   let pays = "";
   try { pays = code ? nomsPays.of(code) : ""; } catch { pays = code; }
+  const source = SOURCES.includes(c.source) ? c.source : "Autre site";
+  const appareil = c.appareil === "téléphone" ? "téléphone" : "ordinateur";
+  if (c.premier) await compterVisite({ pays: code, source, appareil }).catch((e) => console.error("statistiques", e.message));
   await magasin().setJSON(id, {
     page: PAGES[page] || page || "?",
-    source: SOURCES.includes(c.source) ? c.source : "Autre site",
-    appareil: c.appareil === "téléphone" ? "téléphone" : "ordinateur",
+    source,
+    appareil,
     pays: pays || "Inconnu",
     debut,
     vu: maintenant,
