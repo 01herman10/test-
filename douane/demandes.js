@@ -17,7 +17,7 @@ function texte(v, max = 500) {
 }
 
 /** Transforme les champs envoyés par le formulaire en fiche de demande, avec l'estimation. */
-export function traiterDemande(data, { id, recueLe = new Date().toISOString(), anneeReference } = {}) {
+export function traiterDemande(data, { id, recueLe = new Date().toISOString(), anneeReference, taux = null } = {}) {
   const fiche = {
     id,
     recueLe,
@@ -44,7 +44,7 @@ export function traiterDemande(data, { id, recueLe = new Date().toISOString(), a
 
   const montant = lireMontantLibre(fiche.vehicule.prixTexte);
   if (!PAYS[fiche.paysDestination]) {
-    fiche.remarque = "Pays de destination hors des 8 pays de l'UEMOA : estimation à faire à la main.";
+    fiche.remarque = "Pays de destination pas encore couvert par le calculateur : estimation à faire à la main.";
   } else if (fiche.vehicule.type === "autre") {
     fiche.remarque = "Type de véhicule « autre » : estimation à faire à la main.";
   } else {
@@ -55,10 +55,12 @@ export function traiterDemande(data, { id, recueLe = new Date().toISOString(), a
         annee: fiche.vehicule.annee,
         prix: montant ? montant.valeur : 0,
         devise: montant ? montant.devise : "EUR",
+        taux,
         anneeReference,
       });
       fiche.estimation = {
         devise: est.devise,
+        conversion: est.conversion,
         cif: est.cif,
         lignes: est.lignes,
         taux: est.taux,
@@ -69,14 +71,25 @@ export function traiterDemande(data, { id, recueLe = new Date().toISOString(), a
         documents: est.documents,
         prixLu: montant ? montant.valeur : null,
       };
-      fiche.remarque = montant
-        ? "Estimation sur le prix seul : fret et assurance non inclus."
-        : "Prix non reconnu : estimation des taxes à refaire avec le prix.";
+      fiche.remarque = !montant
+        ? "Prix non reconnu : estimation des taxes à refaire avec le prix."
+        : montant.ambigu
+          ? "Prix en « ¥ » sans préciser yen ou yuan : compté en euros, à vérifier avec le client."
+          : "Estimation sur le prix seul : fret et assurance non inclus.";
     } catch (e) {
       fiche.remarque = "Estimation impossible : " + e.message;
     }
   }
   return fiche;
+}
+
+/** ", converti à 1 € = 655,957 FCFA" ou ", converti à 1 USD = 586,37 FCFA (taux indicatif du 2026-11-11)". */
+function phraseConversion(e) {
+  const c = e.conversion;
+  if (!c || e.devise === "XOF") return "";
+  const t = c.fcfaParUnite.toLocaleString("fr-FR", { maximumFractionDigits: 4 }).replace(/[\u00a0\u202f]/g, " ");
+  const unite = e.devise === "EUR" ? "1 €" : "1 " + e.devise;
+  return ", converti à " + unite + " = " + t + " FCFA" + (c.fixe ? "" : " (taux indicatif" + (c.date ? " du " + c.date : "") + ")");
 }
 
 const FCFA = (n) => Math.round(n).toLocaleString("fr-FR").replace(/[  ]/g, " ") + " FCFA";
@@ -154,7 +167,7 @@ tr.t td{font-weight:700;background:#F2C230;border:0}ul{margin:0;padding-left:20p
 ${e ? `<p>${echapper(e.phraseAge)}</p>` : `<p>${echapper(fiche.remarque)}</p>`}
 ${e && e.prixLu ? `<h2>Droits et taxes estimés</h2>
 <table>
-${ligne("CIF", "Valeur retenue (prix seul" + (e.devise === "EUR" ? ", converti à 1 € = 655,957 FCFA" : "") + ")", e.cif)}
+${ligne("CIF", "Valeur retenue (prix seul" + phraseConversion(e) + ")", e.cif)}
 ${ligne("DD", `Droit de douane · ${e.taux.dd} %`, e.lignes.dd)}
 ${ligne("RS", "Redevance statistique · 1 %", e.lignes.rs)}
 ${ligne("PCS", "Prélèvement UEMOA · 1 %", e.lignes.pcs)}

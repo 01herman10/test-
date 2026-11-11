@@ -1,8 +1,9 @@
 // Règles douanières de la zone UEMOA : source unique utilisée par le calculateur (navigateur)
 // et par l'API (fonctions Netlify). Modifier un taux ou une limite ici le change partout.
 
-/** Taux fixe de l'euro en francs CFA. */
-export const EUR = 655.957;
+import { EUR, DEVISES, TAUX_SECOURS, codeDevise, fcfaPour, lireMontantLibre } from "./devises.js";
+
+export { EUR, DEVISES, TAUX_SECOURS, codeDevise, fcfaPour, lireMontantLibre };
 
 // en : préposition devant le nom du pays. enclave : pays sans accès à la mer (arrivée par un port voisin puis par la route).
 // aes : Burkina Faso, Mali et Niger ont quitté la CEDEAO ; le prélèvement de 0,5 % y est à confirmer.
@@ -39,22 +40,24 @@ export function trouverType(id) {
 
 /**
  * Calcule les droits et taxes d'un véhicule et vérifie sa limite d'âge.
- * Montants en euros (devise "EUR") ou en francs CFA (devise "XOF").
+ * Montants dans la monnaie `devise` (EUR, XOF, USD, CNY, JPY, KRW, GBP, AED, RUB), convertis en francs CFA
+ * avec `fcfaParUnite` s'il est donné, sinon avec le tableau `taux` (taux du jour), sinon avec les taux de secours.
  * Chaque ligne est arrondie au franc avant l'addition, comme sur un bulletin de liquidation.
  */
-export function estimer({ pays, type, etat = "occasion", annee = null, prix = 0, fret = 0, assurance = 0, devise = "EUR", anneeReference = new Date().getFullYear() }) {
+export function estimer({ pays, type, etat = "occasion", annee = null, prix = 0, fret = 0, assurance = 0, devise = "EUR", taux = null, fcfaParUnite = null, anneeReference = new Date().getFullYear() }) {
   const p = PAYS[pays];
   if (!p) throw new Error(`Pays inconnu : ${pays}. Pays possibles : ${Object.keys(PAYS).join(", ")}.`);
   const t = trouverType(type);
   if (!t) throw new Error(`Type inconnu : ${type}. Types possibles : ${TYPES.map((x) => x.id).join(", ")}.`);
-  if (devise !== "EUR" && devise !== "XOF") throw new Error(`Devise inconnue : ${devise}. Utiliser EUR ou XOF.`);
+  const code = codeDevise(devise);
+  if (!code) throw new Error(`Devise inconnue : ${devise}. Devises possibles : ${Object.keys(DEVISES).join(", ")}.`);
   for (const [nom, v] of Object.entries({ prix, fret, assurance })) {
     if (typeof v !== "number" || !Number.isFinite(v) || v < 0) throw new Error(`Montant invalide pour ${nom}.`);
   }
+  const conversion = conversionPour(code, taux, fcfaParUnite);
 
   const R = Math.round;
-  const taux = devise === "EUR" ? EUR : 1;
-  const cif = R((prix + fret + assurance) * taux);
+  const cif = R((prix + fret + assurance) * conversion.fcfaParUnite);
   const dd = R((cif * t.dd) / 100);
   const rs = R((cif * TAUX.rs) / 100);
   const pcs = R((cif * TAUX.pcs) / 100);
@@ -76,7 +79,8 @@ export function estimer({ pays, type, etat = "occasion", annee = null, prix = 0,
   return {
     pays: { code: pays, ...p },
     type: t,
-    devise,
+    devise: code,
+    conversion,
     cif,
     lignes: { dd, rs, pcs, pc, tva },
     taux: { dd: t.dd, ...TAUX, tva: p.tva },
@@ -86,6 +90,49 @@ export function estimer({ pays, type, etat = "occasion", annee = null, prix = 0,
     age,
     documents: documents(p),
   };
+}
+
+/** Taux appliqué pour une monnaie : fixe (EUR, XOF), donné, du jour ou de secours. */
+function conversionPour(code, taux, fcfaParUnite) {
+  const d = DEVISES[code];
+  if (d.fixe) return { devise: code, fcfaParUnite: d.fixe, fixe: true };
+  if (fcfaParUnite != null) {
+    if (typeof fcfaParUnite !== "number" || !Number.isFinite(fcfaParUnite) || fcfaParUnite <= 0) throw new Error("Taux de conversion invalide.");
+    return { devise: code, fcfaParUnite, fixe: false, date: null, source: "donné", secours: false };
+  }
+  const table = taux && taux.fcfa && taux.fcfa[code] > 0 ? taux : TAUX_SECOURS;
+  return { devise: code, fcfaParUnite: fcfaPour(code, table), fixe: false, date: table.date || null, source: table.source || null, secours: !!table.secours };
+}
+
+/** Somme des taux (en % du CIF) des droits et prélèvements, et facteur total CIF → CIF + taxes. */
+function facteurs(p, t) {
+  const s = (t.dd + TAUX.rs + TAUX.pcs + TAUX.pc) / 100;
+  return 1 + s + (p.tva / 100) * (1 + s);
+}
+
+/**
+ * Budget inverse : « J'ai X au total, quel prix d'achat maximum ? ».
+ * `budget` couvre tout (prix + fret + assurance + droits et taxes), dans la monnaie `devise`.
+ * Renvoie le prix d'achat maximal (arrondi à l'unité inférieure) et l'estimation correspondante.
+ */
+export function budgetInverse({ pays, type, budget, fret = 0, assurance = 0, devise = "EUR", taux = null, fcfaParUnite = null, etat = "occasion", annee = null, anneeReference = new Date().getFullYear() }) {
+  if (typeof budget !== "number" || !Number.isFinite(budget) || budget <= 0) throw new Error("Budget invalide.");
+  const base = { pays, type, etat, annee, fret, assurance, devise, taux, fcfaParUnite, anneeReference };
+  const vide = estimer({ ...base, prix: 0 }); // vérifie pays, type, devise et montants
+  const u = vide.conversion.fcfaParUnite;
+  const budgetFcfa = Math.floor(budget * u);
+  const cifMax = budgetFcfa / facteurs(PAYS[pays], vide.type);
+  let prix = Math.floor(cifMax / u - fret - assurance);
+  if (prix < 0) return { possible: false, prixMax: 0, budgetFcfa, minimumFcfa: vide.coutTotal, estimation: vide };
+  // Les arrondis au franc décalent le résultat de quelques francs : on ajuste à l'unité près.
+  let est = estimer({ ...base, prix });
+  for (let i = 0; i < 1000 && prix > 0 && est.coutTotal > budgetFcfa; i++) est = estimer({ ...base, prix: --prix });
+  for (let i = 0; i < 1000; i++) {
+    const suivant = estimer({ ...base, prix: prix + 1 });
+    if (suivant.coutTotal > budgetFcfa) break;
+    prix++; est = suivant;
+  }
+  return { possible: true, prixMax: prix, budgetFcfa, estimation: est };
 }
 
 /** Papiers à préparer, selon le pays. */
@@ -112,14 +159,4 @@ export function phraseAge(est) {
     case "acceptee": return "Âge accepté : " + a.age + " an" + (a.age > 1 ? "s" : "") + " (limite " + p.en + " : " + a.limite + " ans" + p.note + ").";
     default: return "Ce véhicule a " + a.age + " an" + (a.age > 1 ? "s" : "") + ". Ce calculateur ne connaît pas la limite d'âge pour ce type de véhicule " + p.en + ". Certains pays en fixent une pour les utilitaires et les véhicules anciens : vérifiez auprès des douanes ou d'un transitaire avant d'acheter.";
   }
-}
-
-/** Lit un montant écrit librement ("5 000 €", "3 000 000 FCFA", "6500,50") ; renvoie { valeur, devise } ou null. */
-export function lireMontantLibre(texte, deviseParDefaut = "EUR") {
-  if (texte == null) return null;
-  const s = String(texte);
-  const devise = /fcfa|xof|cfa|f\b/i.test(s) && !/€|eur/i.test(s) ? "XOF" : /€|eur/i.test(s) ? "EUR" : deviseParDefaut;
-  const chiffres = s.replace(/[^\d,.]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
-  const v = parseFloat(chiffres);
-  return Number.isFinite(v) && v >= 0 ? { valeur: v, devise } : null;
 }

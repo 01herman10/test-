@@ -35,7 +35,8 @@ test("entrées invalides refusées", () => {
   assert.throws(() => estimer({ pays: "FR", type: "voiture" }), /Pays inconnu/);
   assert.throws(() => estimer({ pays: "CI", type: "avion" }), /Type inconnu/);
   assert.throws(() => estimer({ pays: "CI", type: "voiture", prix: -5 }), /Montant invalide/);
-  assert.throws(() => estimer({ pays: "CI", type: "voiture", devise: "USD" }), /Devise inconnue/);
+  assert.throws(() => estimer({ pays: "CI", type: "voiture", devise: "BTC" }), /Devise inconnue/);
+  assert.throws(() => estimer({ pays: "CI", type: "voiture", devise: "USD", fcfaParUnite: -1 }), /Taux de conversion invalide/);
 });
 
 test("lecture des prix écrits librement", () => {

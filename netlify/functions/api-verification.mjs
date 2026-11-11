@@ -3,6 +3,7 @@
 // classe la demande à tort comme indésirable. La référence « ref » évite les doublons avec demande-recue.
 import { getStore } from "@netlify/blobs";
 import { traiterDemande } from "../../douane/demandes.js";
+import { lireTaux } from "../lib/taux.mjs";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CHAMPS = ["ref", "bot-field", "nom", "whatsapp", "email", "pays_destination", "pays_achat", "lien_annonce", "vehicule", "annee", "type", "prix", "message", "consentement"];
@@ -25,7 +26,7 @@ export default async (req) => {
   if (!data.nom.trim() || !data.whatsapp.trim() || !data.vehicule.trim() || data.consentement !== "oui") {
     return Response.json({ erreur: "Champs obligatoires manquants." }, { status: 400 });
   }
-  const fiche = traiterDemande(data, { id: data.ref.toLowerCase(), recueLe: new Date().toISOString() });
+  const fiche = traiterDemande(data, { id: data.ref.toLowerCase(), recueLe: new Date().toISOString(), taux: await lireTaux() });
   fiche.source = "page";
   const { modified } = await getStore({ name: "demandes", consistency: "strong" }).setJSON(fiche.id, fiche, { onlyIfNew: true });
   return Response.json({ enregistre: true, deja: !modified, ref: fiche.id }, { status: modified ? 201 : 200 });

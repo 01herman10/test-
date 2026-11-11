@@ -1,8 +1,12 @@
 // GET ou POST /api/estimation : droits et taxes d'un véhicule et vérification de la limite d'âge.
 // Paramètres : pays (BJ, BF, CI, GW, ML, NE, SN, TG), type (voiture, suv…), etat (occasion | neuf),
-// annee, prix, fret, assurance, devise (EUR | XOF). Exemple :
+// annee, prix, fret, assurance, devise (EUR | XOF | USD | CNY | JPY | KRW | GBP | AED | RUB).
+// Avec budget au lieu de prix : prix d'achat maximal pour ce budget total (prix + fret + assurance + taxes).
+// Exemples :
 // /api/estimation?pays=CI&type=voiture&annee=2021&prix=5000&fret=400&assurance=100&devise=EUR
-import { estimer, phraseAge } from "../../douane/regles.js";
+// /api/estimation?pays=SN&type=voiture&budget=15000&fret=1200&devise=USD
+import { estimer, budgetInverse, phraseAge, codeDevise, DEVISES } from "../../douane/regles.js";
+import { lireTaux } from "../lib/taux.mjs";
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
 
@@ -27,17 +31,27 @@ export default async (req) => {
   if (p.annee !== undefined && p.annee !== null && p.annee !== "" && !/^\d{4}$/.test(String(p.annee).trim())) {
     return Response.json({ erreur: `Année invalide : ${p.annee}. Utiliser 4 chiffres, par exemple 2021.` }, { status: 400, headers: CORS });
   }
+  const devise = String(p.devise || "EUR").toUpperCase();
+  if (!codeDevise(devise)) {
+    return Response.json({ erreur: `Devise inconnue : ${p.devise}. Devises possibles : ${Object.keys(DEVISES).join(", ")}.` }, { status: 400, headers: CORS });
+  }
   try {
-    const est = estimer({
+    const commun = {
       pays: String(p.pays || "").toUpperCase(),
       type: String(p.type || "voiture").toLowerCase(),
       etat: p.etat === "neuf" ? "neuf" : "occasion",
-      prix: nombre(p.prix, "prix"),
       fret: nombre(p.fret, "fret"),
       assurance: nombre(p.assurance, "assurance"),
-      devise: String(p.devise || "EUR").toUpperCase(),
+      devise,
       annee: p.annee === undefined || p.annee === "" ? null : parseInt(p.annee, 10),
-    });
+    };
+    // Pour l'euro et le franc CFA le taux est fixe : pas besoin du taux du jour.
+    const taux = codeDevise(devise) === "EUR" || codeDevise(devise) === "XOF" ? null : await lireTaux();
+    if (p.budget !== undefined && p.budget !== null && p.budget !== "") {
+      const r = budgetInverse({ ...commun, budget: nombre(p.budget, "budget"), taux });
+      return Response.json({ ...r, phraseAge: phraseAge(r.estimation) }, { headers: CORS });
+    }
+    const est = estimer({ ...commun, prix: nombre(p.prix, "prix"), taux });
     return Response.json({ ...est, phraseAge: phraseAge(est) }, { headers: CORS });
   } catch (e) {
     return Response.json({ erreur: e.message }, { status: 400, headers: CORS });

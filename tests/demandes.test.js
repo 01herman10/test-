@@ -44,3 +44,14 @@ test("le rapport échappe le texte saisi par le client", () => {
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /Risque de refus/);
 });
+
+test("prix en dollars, yen ou « ¥ » ambigu dans une demande", () => {
+  const taux = { date: "2026-12-01", source: "test", secours: false, fcfa: { USD: 600, JPY: 4 } };
+  const f = traiterDemande({ ...formulaire, prix: "$10,000" }, { id: "x", anneeReference: 2026, taux });
+  assert.equal(f.estimation.devise, "USD");
+  assert.equal(f.estimation.cif, 6000000);
+  assert.match(rapportHTML(f), /converti à 1 USD = 600 FCFA \(taux indicatif du 2026-12-01\)/);
+  assert.match(rapportHTML(traiterDemande(formulaire, { id: "x", anneeReference: 2026 })), /converti à 1 € = 655,957 FCFA\)/);
+  assert.equal(traiterDemande({ ...formulaire, prix: "1 500 000 yen" }, { id: "x", taux }).estimation.cif, 6000000);
+  assert.match(traiterDemande({ ...formulaire, prix: "¥ 500 000" }, { id: "x" }).remarque, /yen ou yuan/);
+});
