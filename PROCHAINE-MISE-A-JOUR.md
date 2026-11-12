@@ -53,6 +53,14 @@ File d'attente des changements pour la prochaine mise en ligne. Tout est prépar
 - Tests sur une copie locale du site (`scripts/serveur-local.mjs`) : règles 33/33, API 109/109, pages dans un vrai navigateur 115/115.
 - Le jour de la mise en ligne : relancer les deux campagnes sur le vrai site.
 
-## 6. Rappels
+## 6. Le jour J (consigne du propriétaire : on publie sans redemander, puis on lui envoie le lien)
+1. Recalculer les taux des monnaies : `node scripts/mettre-a-jour-taux.mjs` (s'arrête si un taux bouge de plus de 30 %).
+2. `npm test`, puis les deux campagnes sur la copie locale (`scripts/serveur-local.mjs`, voir le README).
+3. Enregistrer (« Taux des monnaies du … »), fusionner `prochaine-mise-a-jour` dans `main`, envoyer `main` : Netlify publie.
+4. Vérifier la mise en ligne sur Netlify (site douane-afrique). Si elle est « skipped » faute de crédits : ne rien forcer, réessayer le lendemain.
+5. Vérifier le vrai site (calculateur, /api/taux, un pays CEMAC, l'appli installable).
+6. Message au propriétaire, tel quel : « Votre application a été mise à jour. Cliquez pour aller voir : https://douane-afrique.netlify.app »
+
+## 7. Rappels
 - Les taux et limites d'âge des 8 pays de l'UEMOA sont toujours « à confirmer » par un transitaire.
 - Quand l'adresse e-mail de Douane Afrique existera : la mettre sur le site et dans les notifications des demandes.
