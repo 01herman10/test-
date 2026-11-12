@@ -109,9 +109,16 @@ button{font:inherit;font-weight:600;font-size:17px;border:0;border-radius:10px;p
           <label>Pays de destination
             <select name="pays_destination" id="pays_destination" required>
               <option value="">Choisir…</option>
-              <option value="BJ">Bénin</option><option value="BF">Burkina Faso</option><option value="CI">Côte d'Ivoire</option>
-              <option value="GW">Guinée-Bissau</option><option value="ML">Mali</option><option value="NE">Niger</option>
-              <option value="SN">Sénégal</option><option value="TG">Togo</option><option value="autre">Autre pays</option>
+              <optgroup label="Afrique de l'Ouest (UEMOA)">
+                <option value="BJ">Bénin</option><option value="BF">Burkina Faso</option><option value="CI">Côte d'Ivoire</option>
+                <option value="GW">Guinée-Bissau</option><option value="ML">Mali</option><option value="NE">Niger</option>
+                <option value="SN">Sénégal</option><option value="TG">Togo</option>
+              </optgroup>
+              <optgroup label="Afrique centrale (CEMAC)">
+                <option value="CM">Cameroun</option><option value="CF">Centrafrique</option><option value="CG">Congo-Brazzaville</option>
+                <option value="GA">Gabon</option><option value="GQ">Guinée équatoriale</option><option value="TD">Tchad</option>
+              </optgroup>
+              <option value="autre">Autre pays</option>
             </select>
           </label>
           <label>Le véhicule se trouve en
@@ -161,7 +168,9 @@ button{font:inherit;font-weight:600;font-size:17px;border:0;border-radius:10px;p
 
   // WhatsApp : l'indicatif du pays est obligatoire, sinon le bouton WhatsApp du suivi ne peut pas ouvrir la discussion.
   var INDICATIFS = { BJ: ["+229", "le Bénin"], BF: ["+226", "le Burkina Faso"], CI: ["+225", "la Côte d'Ivoire"], GW: ["+245", "la Guinée-Bissau"],
-    ML: ["+223", "le Mali"], NE: ["+227", "le Niger"], SN: ["+221", "le Sénégal"], TG: ["+228", "le Togo"] };
+    ML: ["+223", "le Mali"], NE: ["+227", "le Niger"], SN: ["+221", "le Sénégal"], TG: ["+228", "le Togo"],
+    CM: ["+237", "le Cameroun"], CF: ["+236", "la Centrafrique"], CG: ["+242", "le Congo"], GA: ["+241", "le Gabon"],
+    GQ: ["+240", "la Guinée équatoriale"], TD: ["+235", "le Tchad"] };
   var wa = document.getElementById("whatsapp"), dest = document.getElementById("pays_destination");
   function exemple() { var c = INDICATIFS[dest.value]; return c ? c[0] + " pour " + c[1] + ", ou +33 si vous êtes en France" : "+225 pour la Côte d'Ivoire ou +33 pour la France"; }
   function verifierWhatsApp() {

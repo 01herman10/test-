@@ -1,5 +1,5 @@
 // Calculateur de la page d'accueil : lit le formulaire, calcule avec douane/regles.js et affiche le bulletin.
-import { PAYS, TYPES, DEVISES, TAUX_SECOURS, estimer, budgetInverse, phraseAge, fcfaPour } from "./douane/regles.js";
+import { PAYS, TYPES, ZONES, DEVISES, TAUX_SECOURS, estimer, budgetInverse, phraseAge, fcfaPour } from "./douane/regles.js";
 import { lireParametres, lienCalcul, texteBulletin, lienPartageWhatsApp, montantDevise, fcfa } from "./douane/partage.js";
 
 const MONTANTS = ["prix", "budget", "fret", "assur"];
@@ -14,7 +14,14 @@ let taux = TAUX_SECOURS;
 
 // Listes déroulantes
 const selP = $("pays"), selT = $("type"), selD = $("devise");
-for (const k of Object.keys(PAYS)) selP.add(new Option(PAYS[k].nom, k));
+// Pays groupés par région, dans l'ordre alphabétique.
+for (const [code, z] of Object.entries(ZONES)) {
+  const g = document.createElement("optgroup");
+  g.label = z.region + " (" + z.nom + ")";
+  Object.keys(PAYS).filter((k) => PAYS[k].zone === code).sort((a, b) => PAYS[a].nom.localeCompare(PAYS[b].nom, "fr"))
+    .forEach((k) => g.appendChild(new Option(PAYS[k].nom, k)));
+  selP.appendChild(g);
+}
 for (const t of TYPES) selT.add(new Option(t.nom, t.id));
 for (const k of Object.keys(DEVISES)) selD.add(new Option(LIBELLES[k] || DEVISES[k].nom, k));
 selP.value = "CI";
@@ -102,6 +109,10 @@ function calculer() {
   const p = PAYS[selP.value];
   const t = TYPES.find((x) => x.id === selT.value);
   const devise = selD.value, etat = radio("etat"), mode = radio("mode");
+  // Cylindrée : demandée seulement là où elle change le calcul (droit d'accises du Cameroun, voitures de tourisme).
+  const avecMoteur = !!p.accises && t.cat === "vp";
+  $("champ-moteur").hidden = !avecMoteur;
+  const grosMoteur = avecMoteur && $("moteur").value === "gros";
   const annee = parseInt($("annee").value, 10);
 
   for (const el of document.querySelectorAll(".cur")) el.textContent = "(" + DEVISES[devise].symbole + ")";
@@ -110,10 +121,10 @@ function calculer() {
   $("t-port").textContent = p.port;
   $("l-grand").textContent = p.enclave ? "Coût total à l'arrivée" : "Coût total au port";
   $("transit").hidden = !p.enclave;
-  $("transit").textContent = p.enclave ? "Pays sans accès à la mer : le véhicule débarque dans un port voisin (Abidjan, Lomé, Cotonou, Dakar, Tema…) puis rejoint " + p.port.replace("Bureau de douane de ", "") + " par la route. Les frais de transit et de transport routier ne sont pas inclus." : "";
+  $("transit").textContent = p.enclave ? "Pays sans accès à la mer : le véhicule débarque dans un port voisin (" + ZONES[p.zone].portsVoisins + ") puis rejoint " + p.port.replace("Bureau de douane de ", "") + " par la route. Les frais de transit et de transport routier ne sont pas inclus." : "";
 
-  const base = { pays: selP.value, type: t.id, etat, annee, fret: montant("fret"), assurance: montant("assur"), devise, taux, anneeReference: anneeMax };
-  const saisie = { pays: base.pays, type: base.type, etat, annee: annee || null, devise, mode, fret: base.fret, assurance: base.assurance };
+  const base = { pays: selP.value, type: t.id, etat, annee, fret: montant("fret"), assurance: montant("assur"), devise, taux, grosMoteur, anneeReference: anneeMax };
+  const saisie = { pays: base.pays, type: base.type, etat, annee: annee || null, devise, mode, fret: base.fret, assurance: base.assurance, grosMoteur };
   let est;
   const rb = $("res-budget");
   rb.hidden = mode !== "budget";
@@ -155,16 +166,13 @@ function calculer() {
   $("calc").classList.toggle("dim", est.age.statut === "refusee");
 
   // Chaque ligne est arrondie au franc avant d'être additionnée : le total est la somme exacte des lignes affichées.
-  const L = est.lignes, c = est.conversion;
+  const c = est.conversion;
   const conv = devise === "XOF" ? "" : devise === "EUR" ? ", converti en FCFA (1 € = 655,957 FCFA)" : ", converti en FCFA (1 " + devise + " = " + unTaux(c.fcfaParUnite) + " FCFA, taux indicatif)";
+  const pourcent = (v) => String(v).replace(".", ",") + " %";
   const ol = $("lignes");
   ol.innerHTML = "";
   ol.appendChild(ligne("CIF", "Valeur en douane", "Prix + fret + assurance" + conv + ". Toutes les taxes se calculent à partir de ce montant.", est.cif, "cif"));
-  ol.appendChild(ligne("DD", "Droit de douane · " + t.dd + " %", "La taxe principale. Son taux dépend du type de véhicule : " + t.nom.toLowerCase() + ".", L.dd));
-  ol.appendChild(ligne("RS", "Redevance statistique · 1 %", "Finance le suivi des importations par la douane.", L.rs));
-  ol.appendChild(ligne("PCS", "Prélèvement UEMOA · 1 %", "Contribution à l'Union économique et monétaire ouest-africaine.", L.pcs));
-  ol.appendChild(ligne("PC", (p.aes ? "Prélèvement communautaire" : "Prélèvement CEDEAO") + " · 0,5 %", p.aes ? "Ce pays a quitté la CEDEAO : ce prélèvement est remplacé par celui de l'Alliance des États du Sahel (AES). Taux à confirmer auprès des douanes." : "Contribution à la Communauté des États d'Afrique de l'Ouest.", L.pc));
-  ol.appendChild(ligne("TVA", "TVA · " + p.tva + " %" + (p.tvaNote || ""), "Calculée sur la valeur CIF plus toutes les taxes ci-dessus, pas seulement sur le prix. C'est pour ça qu'elle pèse lourd.", L.tva));
+  for (const l of est.detail) ol.appendChild(ligne(l.code, l.nom + " · " + pourcent(l.taux) + (l.note || ""), l.explication, l.montant));
 
   $("total").textContent = fcfa(est.total);
   $("pct").textContent = est.cif > 0 ? ((est.total / est.cif) * 100).toFixed(1).replace(".", ",") + " %" : "—";
@@ -192,6 +200,7 @@ const q = lireParametres(location.search);
 if (q.pays) selP.value = q.pays;
 if (q.type) selT.value = q.type;
 if (q.etat) choisir("etat", q.etat);
+if (q.grosMoteur) $("moteur").value = "gros";
 if (q.annee) $("annee").value = q.annee;
 if (q.devise) { selD.value = q.devise; devisePrec = q.devise; }
 const dq = selD.value;
@@ -235,7 +244,7 @@ $("f-retour").addEventListener("submit", async (e) => {
   err.hidden = true;
   const s = dernier.saisie;
   const corps = {
-    pays: s.pays, type: s.type, etat: s.etat, annee: s.annee, devise: s.devise, prix: s.prix, fret: s.fret, assurance: s.assurance,
+    pays: s.pays, type: s.type, etat: s.etat, annee: s.annee, devise: s.devise, prix: s.prix, fret: s.fret, assurance: s.assurance, grosMoteur: s.grosMoteur,
     couvre: radio("couvre"), montantReel: v, anneeDedouanement: $("annee-dedouanement").value, commentaire: $("commentaire").value,
     "bot-field": $("bot-field").value,
   };

@@ -1,16 +1,26 @@
 # Douane Afrique
 
-Site statique publié sur Netlify (douane-afrique.netlify.app) : estimation des droits et taxes d'importation d'un véhicule dans les 8 pays de l'UEMOA.
+Site statique publié sur Netlify (douane-afrique.netlify.app) : estimation des droits et taxes d'importation d'un véhicule dans 14 pays : les 8 de l'UEMOA (Afrique de l'Ouest) et les 6 de la CEMAC (Afrique centrale).
 
 | Page | Adresse | Ce qu'elle fait |
 |---|---|---|
-| Calculateur de douane | `/` | Droits et taxes d'un véhicule : Bénin, Burkina Faso, Côte d'Ivoire, Guinée-Bissau, Mali, Niger, Sénégal, Togo. Prix en euros, francs CFA, dollars, yuans, yens, wons, livres, dirhams ou roubles ; « Mon budget » (prix d'achat maximum) ; partage WhatsApp et lien qui rouvre le calcul ; bouton « Le vrai montant était différent ? » ; appli installable qui marche hors ligne |
+| Calculateur de douane | `/` | Droits et taxes d'un véhicule : Bénin, Burkina Faso, Côte d'Ivoire, Guinée-Bissau, Mali, Niger, Sénégal, Togo (UEMOA) ; Cameroun, Centrafrique, Congo-Brazzaville, Gabon, Guinée équatoriale, Tchad (CEMAC). Prix en euros, francs CFA, dollars, yuans, yens, wons, livres, dirhams ou roubles ; « Mon budget » (prix d'achat maximum) ; partage WhatsApp et lien qui rouvre le calcul ; bouton « Le vrai montant était différent ? » ; appli installable qui marche hors ligne |
 | Vérification avant achat | `/verification/` | Formulaire « Faire vérifier mon véhicule » (Netlify Forms) ; page de remerciement `/verification/merci/` |
 | Vitrine | `/vitrine/` | Bandeau « Avant d'importer, pesez le vrai prix. » et galerie de photos |
 | Espace de suivi | `/suivi/` | Privé : demandes, visiteurs en direct, visiteurs par pays sur 30 jours, retours « montant différent » |
 | Espace admin | `/admin/` | Modifier l'accroche et les photos de la vitrine, sans toucher au code |
 
 L'euro et le franc CFA sont liés par un taux fixe (1 € = 655,957 FCFA, même valeur pour le franc CFA d'Afrique de l'Ouest et d'Afrique centrale). Les autres monnaies sont converties au taux indicatif du jour (ExchangeRate-API, gratuit, attribution affichée), gardé 12 heures ; si la source ne répond pas, des taux de secours datés sont utilisés (`douane/devises.js`).
+
+### Afrique centrale (CEMAC) : d'où viennent les taux
+
+| Élément | Valeur retenue | Source |
+|---|---|---|
+| Droit de douane | Voitures, SUV, taxis, motos, tricycles 30 % ; pick-up et camions 20 % (10 % au-delà de 20 t) ; bus 10 % (30 % à plusieurs essieux moteurs) ; tracteurs 10 % | Tarif des douanes CEMAC (édition 2009, publié par les douanes gabonaises). Un nouveau tarif CEEAC-CEMAC s'applique au Cameroun depuis le 1er janvier 2026 (véhicules de tourisme annoncés « entre 5 et 20 % ») : **à confirmer** |
+| TCI · CCI · OHADA + Union africaine | 1 % · 0,4 % · 0,05 % + 0,2 % de la valeur CIF | Douanes gabonaises, « La fiscalité douanière » ; règlement CEMAC sur la TCI |
+| TVA | Cameroun 19,25 % · Congo 18,9 % · Gabon 18 % · Tchad 18 % · Centrafrique 19 % · Guinée équatoriale 15 %, sur la valeur CIF plus tous les droits | Gabon : douanes gabonaises ; Cameroun : 17,5 % + centimes additionnels ; les autres : **à confirmer** |
+| Droit d'accises (Cameroun) | Tourisme ≤ 2 500 cm³ : 0 % jusqu'à 12 ans, 12,5 % jusqu'à 20 ans, 25 % au-delà ; > 2 500 cm³ : 12,5 % jusqu'à 15 ans, 25 % au-delà ; utilitaires et bus : 0 % jusqu'à 15 ans, 12,5 % jusqu'à 20 ans, 25 % au-delà | Projet de loi de finances 2026 du Cameroun, article 10 |
+| Âge maximum | Gabon 10 ans (décret de janvier 2024) ; Congo 7 ans (tourisme, transport de personnes) et 10 ans (marchandises), décret n° 2011-489 ; Cameroun aucun (accises) ; Tchad, Centrafrique, Guinée équatoriale : pas de limite connue | **À confirmer**, surtout l'application réelle au Congo et au Tchad |
 
 Les taux, les limites d'âge et les prélèvements sont indicatifs et doivent être vérifiés auprès des douanes ou d'un transitaire agréé. Les points à confirmer sont signalés dans le calculateur.
 
@@ -27,7 +37,7 @@ Fonctions Netlify dans `netlify/functions/`. Les règles douanières (taux, limi
 | Adresse | Accès | Ce qu'elle fait |
 |---|---|---|
 | `GET /api` | Public | Description du back-end : toutes les adresses, paramètres et exemples |
-| `GET /api/regles` | Public | Les 8 pays, les types de véhicules, les taux et les monnaies |
+| `GET /api/regles` | Public | Les 14 pays, les deux zones (droits et prélèvements), les types de véhicules, les taux et les monnaies |
 | `GET /api/taux` | Public | Francs CFA pour 1 unité de chaque monnaie (euro fixe, autres au taux du jour), date et source |
 | `GET` ou `POST /api/estimation` | Public | Droits, taxes et limite d'âge. Paramètres : `pays`, `type`, `etat` (`occasion` ou `neuf`), `annee`, `prix`, `fret`, `assurance`, `devise` (`EUR`, `XOF`, `USD`, `CNY`, `JPY`, `KRW`, `GBP`, `AED`, `RUB`). Avec `budget` à la place de `prix` : prix d'achat maximum pour ce budget tout compris |
 | `POST /api/retour` | Public (calculateur) | « Le vrai montant était différent ? » : montant réellement payé, sans donnée personnelle ; l'estimation est recalculée côté serveur ; piège anti-robots |

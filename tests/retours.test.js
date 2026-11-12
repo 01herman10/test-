@@ -26,13 +26,13 @@ test("retour : champs faux refusés", () => {
 });
 
 test("statistiques : compteurs par pays, pays couverts signalés", () => {
-  let j = ajouterVisite(null, { pays: "CM", source: "TikTok", appareil: "téléphone" });
-  j = ajouterVisite(j, { pays: "CM", source: "WhatsApp", appareil: "téléphone" });
+  let j = ajouterVisite(null, { pays: "CD", source: "TikTok", appareil: "téléphone" });
+  j = ajouterVisite(j, { pays: "CD", source: "WhatsApp", appareil: "téléphone" });
   j = ajouterVisite(j, { pays: "CI", source: "TikTok", appareil: "ordinateur" });
   const k = ajouterVisite(null, { pays: "", source: "Direct" });
-  const r = resumer([j, k, null], (c) => ({ CM: "Cameroun", CI: "Côte d'Ivoire" })[c] || c);
+  const r = resumer([j, k, null], (c) => ({ CD: "Congo-Kinshasa", CI: "Côte d'Ivoire" })[c] || c);
   assert.equal(r.visites, 4);
-  assert.deepEqual(r.pays[0], { code: "CM", nom: "Cameroun", visites: 2, couvert: false });
+  assert.deepEqual(r.pays[0], { code: "CD", nom: "Congo-Kinshasa", visites: 2, couvert: false });
   assert.deepEqual(r.pays.find((p) => p.code === "CI"), { code: "CI", nom: "Côte d'Ivoire", visites: 1, couvert: true });
   assert.equal(r.pays.find((p) => p.code === "??").nom, "Inconnu");
   assert.deepEqual(r.sources[0], ["TikTok", 2]);

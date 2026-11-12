@@ -30,6 +30,7 @@ export function traiterRetour(data, { id, recuLe = new Date().toISOString(), tau
   const entree = {
     pays, type, devise, annee,
     etat: data.etat === "neuf" ? "neuf" : "occasion",
+    grosMoteur: data.grosMoteur === true || data.grosMoteur === "true",
     prix: nombre(data.prix, "Prix"),
     fret: nombre(data.fret, "Fret"),
     assurance: nombre(data.assurance, "Assurance"),

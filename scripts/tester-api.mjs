@@ -32,9 +32,13 @@ verifier("GET /api décrit le service", r.statut === 200 && r.json?.service === 
 r = await appel("POST", "/api"); verifier("POST /api → 405", r.statut === 405 && r.json?.erreur);
 r = await appel("GET", "/api/inexistante"); verifier("adresse inconnue → 404 JSON", r.statut === 404 && r.json?.erreur);
 r = await appel("GET", "/api/regles");
-verifier("GET /api/regles : 8 pays, 9 types", r.statut === 200 && Object.keys(r.json.pays).length === 8 && r.json.types.length === 9);
+verifier("GET /api/regles : 14 pays (UEMOA + CEMAC), 9 types", r.statut === 200 && Object.keys(r.json.pays).length === 14 && r.json.types.length === 9 && r.json.zones?.CEMAC);
 verifier("CORS ouvert sur /api/regles", r.entetes.get("access-control-allow-origin") === "*");
 r = await appel("POST", "/api/regles"); verifier("POST /api/regles → 405", r.statut === 405 && r.json?.erreur);
+r = await appel("GET", "/api/estimation?pays=CM&type=voiture&annee=2010&prix=5000&fret=400&assurance=100&devise=EUR");
+verifier("GET /api/estimation Cameroun : lignes CEMAC et accises", r.statut === 200 && r.json.zone === "CEMAC" && r.json.detail.map((l) => l.code).join() === "DD,TCI,CCI,AUT,DA,TVA" && r.json.taux.dd === 30, r.texte.slice(0, 200));
+r = await appel("GET", "/api/estimation?pays=CG&type=voiture&annee=2010&prix=5000&devise=EUR");
+verifier("GET /api/estimation Congo : voiture de plus de 7 ans signalée", r.statut === 200 && r.json.age.statut === "refusee" && /Au Congo/.test(r.json.phraseAge), r.json?.phraseAge);
 r = await appel("GET", "/api/taux");
 verifier("GET /api/taux : euro fixe, dollar au taux du jour, attribution", r.statut === 200 && r.json.fcfa.EUR === 655.957 && r.json.fcfa.XOF === 1 && r.json.fcfa.USD > 300 && r.json.fcfa.USD < 900 && /Exchange Rate API/.test(r.json.attribution) && !r.json.secours, JSON.stringify(r.json?.fcfa));
 r = await appel("GET", "/api/estimation?pays=CI&type=voiture&prix=10000&devise=USD");

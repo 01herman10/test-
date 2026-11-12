@@ -5,7 +5,7 @@ const CORS = { "Access-Control-Allow-Origin": "*" };
 const DESCRIPTION = {
   service: "API Douane Afrique",
   version: "1.2",
-  description: "Droits et taxes d'importation de véhicules dans les 8 pays de l'UEMOA, et demandes de vérification avant achat.",
+  description: "Droits et taxes d'importation de véhicules dans 14 pays : les 8 de l'UEMOA (Afrique de l'Ouest) et les 6 de la CEMAC (Afrique centrale), et demandes de vérification avant achat.",
   adresses: [
     { methode: "GET", chemin: "/api", acces: "public", role: "Cette description." },
     { methode: "GET", chemin: "/api/regles", acces: "public", role: "Pays, types de véhicules, taux et monnaies acceptées." },
@@ -13,7 +13,8 @@ const DESCRIPTION = {
     {
       methode: "GET ou POST", chemin: "/api/estimation", acces: "public", role: "Droits, taxes et limite d'âge d'un véhicule.",
       parametres: {
-        pays: "BJ, BF, CI, GW, ML, NE, SN ou TG (obligatoire)", type: "voiture, suv, taxi, moto, tricycle, pickup, bus, camion, tracteur (défaut : voiture)",
+        pays: "UEMOA : BJ, BF, CI, GW, ML, NE, SN, TG ; CEMAC : CM, CF, CG, GA, GQ, TD (obligatoire)",
+        moteur: "gros si la cylindrée dépasse 2 500 cm3 (change le droit d'accises au Cameroun)", type: "voiture, suv, taxi, moto, tricycle, pickup, bus, camion, tracteur (défaut : voiture)",
         etat: "occasion ou neuf (défaut : occasion)", annee: "année de fabrication, ex. 2021", prix: "nombre", fret: "nombre", assurance: "nombre",
         devise: "EUR, XOF, USD, CNY, JPY, KRW, GBP, AED ou RUB (défaut : EUR)",
         budget: "à la place de prix : budget total (prix + fret + assurance + taxes) ; renvoie le prix d'achat maximal",

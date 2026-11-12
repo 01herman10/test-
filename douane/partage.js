@@ -36,6 +36,7 @@ export function lireParametres(recherche) {
     const n = nombre(sp.get(cle));
     if (n !== null) r[nom] = n;
   }
+  if (sp.get("moteur") === "gros") r.grosMoteur = true;
   if (r.budget != null) r.mode = "budget";
   return r;
 }
@@ -47,6 +48,7 @@ export function lienCalcul(origine, e) {
   sp.set("type", e.type);
   if (e.etat === "neuf") sp.set("etat", "neuf");
   if (e.annee) sp.set("annee", String(e.annee));
+  if (e.grosMoteur) sp.set("moteur", "gros");
   sp.set("devise", e.devise);
   if (e.mode === "budget") sp.set("budget", String(e.budget || 0));
   else sp.set("prix", String(e.prix || 0));
@@ -61,7 +63,7 @@ export function lienCalcul(origine, e) {
  */
 export function texteBulletin(est, saisie, lien) {
   const p = est.pays, t = est.type, d = saisie.devise;
-  const quoi = t.nom + (saisie.annee ? " " + saisie.annee : "") + " · " + (saisie.etat === "neuf" ? "neuf" : "occasion");
+  const quoi = t.nom + (saisie.annee ? " " + saisie.annee : "") + " · " + (saisie.etat === "neuf" ? "neuf" : "occasion") + (saisie.grosMoteur ? " · plus de 2 500 cm³" : "");
   const lignes = ["*Estimation douane – Douane Afrique*", "", quoi + " → " + p.nom + " (" + p.port + ")"];
   if (saisie.mode === "budget") {
     lignes.push("Budget total : " + montantDevise(saisie.budget, d));

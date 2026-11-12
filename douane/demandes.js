@@ -62,6 +62,7 @@ export function traiterDemande(data, { id, recueLe = new Date().toISOString(), a
         devise: est.devise,
         conversion: est.conversion,
         cif: est.cif,
+        detail: est.detail,
         lignes: est.lignes,
         taux: est.taux,
         total: est.total,
@@ -168,11 +169,7 @@ ${e ? `<p>${echapper(e.phraseAge)}</p>` : `<p>${echapper(fiche.remarque)}</p>`}
 ${e && e.prixLu ? `<h2>Droits et taxes estimés</h2>
 <table>
 ${ligne("CIF", "Valeur retenue (prix seul" + phraseConversion(e) + ")", e.cif)}
-${ligne("DD", `Droit de douane · ${e.taux.dd} %`, e.lignes.dd)}
-${ligne("RS", "Redevance statistique · 1 %", e.lignes.rs)}
-${ligne("PCS", "Prélèvement UEMOA · 1 %", e.lignes.pcs)}
-${ligne("PC", (p && p.aes ? "Prélèvement communautaire" : "Prélèvement CEDEAO") + " · 0,5 %", e.lignes.pc)}
-${ligne("TVA", `TVA · ${e.taux.tva} %`, e.lignes.tva)}
+${(e.detail || []).map((l) => ligne(l.code, `${l.nom} · ${String(l.taux).replace(".", ",")} %`, l.montant)).join("\n")}
 <tr class="t"><td></td><td>Total droits et taxes</td><td class="m">${FCFA(e.total)}</td></tr>
 </table>
 <p class="meta">Fret maritime et assurance non inclus : ils s'ajoutent à la valeur en douane et augmentent les taxes. Coût prix + taxes : ${FCFA(e.coutTotal)}.</p>` : ""}
@@ -180,6 +177,6 @@ ${e ? `<h2>Papiers à réunir</h2><ul>${e.documents.map(([n, d]) => `<li><b>${ec
 <h2>Points vérifiés sur l'annonce</h2>
 <ul><li>Prix cohérent avec le marché pour ce modèle et cette année : ____</li><li>Kilométrage cohérent avec l'âge : ____</li><li>Historique et contrôle technique : ____</li><li>Vendeur et papiers : ____</li></ul>
 ${v.lienAnnonce ? `<p class="meta">Annonce : ${echapper(v.lienAnnonce)}</p>` : ""}
-<p class="note">Estimation indicative fondée sur le tarif commun de l'UEMOA et les règles connues du pays de destination. Les taux et limites d'âge doivent être confirmés auprès des douanes ou d'un transitaire agréé avant l'achat.</p>
+<p class="note">Estimation indicative fondée sur le tarif commun ${p && p.zone === "CEMAC" ? "de la CEMAC" : "de l'UEMOA"} et les règles connues du pays de destination. Les taux et limites d'âge doivent être confirmés auprès des douanes ou d'un transitaire agréé avant l'achat.</p>
 </div></body></html>`;
 }

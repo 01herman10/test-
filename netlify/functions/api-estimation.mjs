@@ -1,5 +1,6 @@
 // GET ou POST /api/estimation : droits et taxes d'un véhicule et vérification de la limite d'âge.
-// Paramètres : pays (BJ, BF, CI, GW, ML, NE, SN, TG), type (voiture, suv…), etat (occasion | neuf),
+// Paramètres : pays (UEMOA : BJ, BF, CI, GW, ML, NE, SN, TG ; CEMAC : CM, CF, CG, GA, GQ, TD), type (voiture, suv…), etat (occasion | neuf),
+// moteur (gros = plus de 2 500 cm3, utile au Cameroun),
 // annee, prix, fret, assurance, devise (EUR | XOF | USD | CNY | JPY | KRW | GBP | AED | RUB).
 // Avec budget au lieu de prix : prix d'achat maximal pour ce budget total (prix + fret + assurance + taxes).
 // Exemples :
@@ -43,6 +44,7 @@ export default async (req) => {
       fret: nombre(p.fret, "fret"),
       assurance: nombre(p.assurance, "assurance"),
       devise,
+      grosMoteur: p.moteur === "gros" || p.grosMoteur === true || p.grosMoteur === "true",
       annee: p.annee === undefined || p.annee === "" ? null : parseInt(p.annee, 10),
     };
     // Pour l'euro et le franc CFA le taux est fixe : pas besoin du taux du jour.

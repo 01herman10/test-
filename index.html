@@ -130,7 +130,7 @@ nav.outils .installer{font:inherit;font-weight:600;font-size:14px;color:var(--ac
 <div class="wrap">
   <nav class="outils"><button type="button" class="installer" id="installer" hidden>Installer l'appli</button><a href="verification/">Faire vérifier mon véhicule</a><a href="vitrine/">Notre vitrine →</a></nav>
   <header>
-    <div class="eyebrow">Zone UEMOA · 8 pays</div>
+    <div class="eyebrow">Afrique de l'Ouest et Afrique centrale · 14 pays</div>
     <h1>Combien vais-je payer à la douane&nbsp;?</h1>
     <p class="lead">Entrez votre véhicule, sa valeur et le pays d'arrivée. Le calcul détaille chaque taxe et explique pourquoi vous la payez.</p>
   </header>
@@ -146,6 +146,10 @@ nav.outils .installer{font:inherit;font-weight:600;font-size:14px;color:var(--ac
         <div class="field">
           <label for="type">Type de véhicule</label>
           <select id="type"></select>
+        </div>
+        <div class="field" id="champ-moteur" hidden>
+          <label for="moteur">Cylindrée du moteur</label>
+          <select id="moteur"><option value="petit">2 500 cm³ ou moins (la plupart des voitures)</option><option value="gros">Plus de 2 500 cm³ (gros 4x4, grosses berlines)</option></select>
         </div>
         <div class="row2">
           <div class="field">
@@ -261,7 +265,7 @@ nav.outils .installer{font:inherit;font-weight:600;font-size:14px;color:var(--ac
     <ul id="docs"></ul>
   </section>
 
-  <p class="fine">Estimation indicative, basée sur le tarif commun UEMOA. Chaque ligne est arrondie au franc, comme sur un bulletin de liquidation. Le montant réel peut varier selon la cylindrée, l'âge, les taxes nationales et la valeur retenue par la douane. Non inclus : honoraires du transitaire, frais de port et de parking, immatriculation, assurance locale. Vérifiez toujours auprès des douanes ou d'un transitaire agréé.</p>
+  <p class="fine">Estimation indicative, basée sur le tarif commun de l'UEMOA (Afrique de l'Ouest) ou de la CEMAC (Afrique centrale). Les taux de l'Afrique centrale sont nouveaux sur ce site : ils restent à confirmer par un transitaire. Chaque ligne est arrondie au franc, comme sur un bulletin de liquidation. Le montant réel peut varier selon la cylindrée, l'âge, les taxes nationales et la valeur retenue par la douane. Non inclus : honoraires du transitaire, frais de port et de parking, immatriculation, assurance locale. Vérifiez toujours auprès des douanes ou d'un transitaire agréé.</p>
   <p class="fine">L'euro et le franc CFA sont liés par un taux fixe (1 € = 655,957 FCFA). Pour les autres monnaies, le taux est indicatif et mis à jour chaque jour (<a href="https://www.exchangerate-api.com" target="_blank" rel="noopener">Rates By Exchange Rate API</a>) ; la douane applique son taux officiel du jour de la déclaration.</p>
 </div>
 
